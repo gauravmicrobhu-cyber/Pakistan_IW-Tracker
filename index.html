@@ -773,6 +773,53 @@
     border-bottom: 1px solid var(--border);
   }
 
+  /* ── NATIONAL POSTURE INDEX ── */
+  .posture-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 1rem;
+  }
+  .posture-score-wrap { display: flex; align-items: baseline; gap: 10px; }
+  .posture-score {
+    font-family: var(--mono); font-size: 42px; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .posture-score-max { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+  .posture-status {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 12px; border: 1px solid; white-space: nowrap;
+    clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
+  }
+  .posture-status.guarded  { color: var(--teal); border-color: var(--teal); background: rgba(0,245,212,0.08); }
+  .posture-status.elevated { color: var(--accent2); border-color: var(--accent2); background: rgba(255,159,28,0.08); }
+  .posture-status.critical { color: var(--accent); border-color: var(--accent); background: rgba(255,45,106,0.08); }
+  .posture-bar-track {
+    height: 6px; background: var(--surface2); overflow: hidden;
+    display: flex; margin-bottom: 1rem;
+  }
+  .posture-bar-seg { height: 100%; transition: width .3s ease; }
+  .posture-factors {
+    display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 8px;
+  }
+  .posture-factor {
+    font-family: var(--mono); font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: all 0.2s; text-align: left;
+    clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  }
+  .posture-factor:hover { border-color: var(--text-dim); }
+  .posture-factor.on { border-color: currentColor; background: rgba(255,255,255,0.03); }
+  .posture-factor.off { opacity: 0.4; }
+  .posture-factor-name { flex: 1; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
+  .posture-factor-val { font-weight: 700; font-size: 13px; }
+  .posture-disclaimer {
+    font-size: 10.5px; color: var(--muted); line-height: 1.6;
+    margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border);
+  }
+  .posture-disclaimer strong { color: var(--text-dim); }
+
   /* Threat meter */
   .threat-level {
     display: flex; flex-direction: column; gap: 0.5rem;
@@ -1198,6 +1245,18 @@
     <button class="pill" data-filter="response" style="border-color:#5c8fd655;">Indian Response</button>
   </div>
   <input class="search-box" id="searchBox" type="text" placeholder="Search incidents..."/>
+  <button class="btn-reset" id="copyFilteredLinkBtn" onclick="copyFilteredViewLink()" title="Copy a link that reopens this exact filtered view" style="margin-left:8px;">🔗 Copy filtered view link</button>
+</div>
+<div class="filter-bar" id="campaignFilterBar" style="border-top:none;padding-top:0;">
+  <span class="filter-label">Campaign:</span>
+  <div class="filter-pills" id="campaignPills">
+    <button class="pill pill-campaign active" data-campaign="all">All</button>
+    <button class="pill pill-campaign" data-campaign="pulwama_balakot" style="border-color:#ff9f1c55;">Pulwama–Balakot</button>
+    <button class="pill pill-campaign" data-campaign="article370" style="border-color:#c724ff55;">Article 370</button>
+    <button class="pill pill-campaign" data-campaign="pahalgam" style="border-color:#ff2d6a55;">Pahalgam</button>
+    <button class="pill pill-campaign" data-campaign="sindoor" style="border-color:#2f9bff55;">Op Sindoor</button>
+    <button class="pill pill-campaign" data-campaign="ongoing" style="border-color:#8b96ab55;">Ongoing/Other</button>
+  </div>
   <button class="btn-reset" onclick="exportData('json')" title="Export currently filtered incidents as JSON">⤓ JSON</button>
   <button class="btn-reset" onclick="exportData('csv')" title="Export currently filtered incidents as CSV">⤓ CSV</button>
 </div>
@@ -1394,6 +1453,25 @@
 <!-- ANALYTICS TAB -->
 <div class="tab-panel" id="tab-analytics">
   <div style="max-width:1400px;margin:0 auto;padding:1.5rem;">
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">◆ National IW Posture Index <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· composite across all active campaigns · click a factor to exclude it from the score</span></div>
+      <div class="posture-top">
+        <div class="posture-score-wrap">
+          <div class="posture-score" id="postureScore">—</div>
+          <div class="posture-score-max">/100</div>
+        </div>
+        <div class="posture-status guarded" id="postureStatus">GUARDED</div>
+      </div>
+      <div class="posture-bar-track" id="postureBarTrack"></div>
+      <div class="posture-factors" id="postureFactors"></div>
+      <div class="posture-disclaimer">
+        <strong>⚠ Illustrative model, not an official threat rating.</strong> Weighted from this tracker's own logged data only — campaign intensity (existing per-campaign composite below, volume-weighted), 30-day recency, critical-severity share, and logged Indian-response coverage relative to threat-vector volume. Reconcile against primary sourcing before citing in a brief.
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">⬡ IW Intensity Index by Campaign <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· composite of volume, confirmed-attribution share, source authority &amp; severity · click a card to filter · floor applied ⚑ = ≥1 confirmed incident keeps score from drifting below 40</span></div>
+      <div id="campaignIndexHost" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;"></div>
+    </div>
     <div class="widget" style="margin-bottom:1.5rem;">
       <div class="widget-title">▦ Incident Calendar Heatmap</div>
       <div id="calendarHeatmapHost"></div>
@@ -2308,7 +2386,10 @@ const PENDING_ACTIONED_KEY = 'prism_iw_pending_actioned'; // ids the user has pr
 const pullLog = [
   { date: "2026-08-17", sourcesChecked: "PIB Fact Check, CloudSEK, DFRAC, Graphika, MEA briefings, IFCN fact-checkers (Factly/BOOM/Fact Crescendo/Newschecker/Quint), general web search",
     found: 2, declined: 2,
-    note: "First pull. Declined: an April 2026 organiser.org '40 fabricated claims' compilation (no credited investigative source, couldn't independently verify the claim list) and CloudSEK/PIB items that duplicated entries already in the registry (Gen Dwivedi/Rajnath Singh deepfakes, hacktivist claim debunks)." }
+    note: "First pull. Declined: an April 2026 organiser.org '40 fabricated claims' compilation (no credited investigative source, couldn't independently verify the claim list) and CloudSEK/PIB items that duplicated entries already in the registry (Gen Dwivedi/Rajnath Singh deepfakes, hacktivist claim debunks)." },
+  { date: "2026-08-31", sourcesChecked: "PIB Fact Check, AIR/newsonair.gov.in, IANS wire (via NewsGram), DFRAC, general web search",
+    found: 2, declined: 2,
+    note: "Declined: an Oct 2025 fake-video item re: Western Command Chief Lt Gen Manoj Kumar/Taliban claim — this pull could not confirm explicit Pakistan attribution in the source, worth re-checking with the original PIB release rather than the secondary writeup; and an April 2026 DFRAC item on a Pakistan-linked network active during the Iran-Israel-US conflict, which appears to substantially overlap the March 2026 wave already logged (Gen Dwivedi/Rajnath Singh/IRIS Dena deepfakes, Nitin Mohan/Bahrain claim already pending) rather than describing a distinct incident." }
 ];
 
 const pendingSeed = [
@@ -2331,6 +2412,26 @@ const pendingSeed = [
     date: "2026-03-12", source: "Factly / Fact Crescendo / BOOM / Newschecker / The Quint", actor: "Pakistan-linked accounts (DFRAC network attribution, not independently re-verified this pull)",
     foundDate: "2026-08-17",
     pullNote: "5 independent IFCN-affiliated fact-checkers agree the claim itself is fabricated — solid ground for promoting the core claim. DFRAC's specific network/account attribution (@ProudIndianNav, @Shadowfox_11) is DFRAC's own investigative finding and wasn't independently re-verified in this pull; consider whether to keep, trim, or caveat that part before promoting."
+  },
+  {
+    id: "pending-20260831-01",
+    title: "AI-generated deepfake of President Murmu circulated by Pakistani propaganda accounts",
+    detail: "In late November 2025, Pakistani propaganda-linked social media accounts circulated a digitally altered, AI-generated video of President Droupadi Murmu making false statements, intended to mislead audiences about extremism and the state of secularism in India. The Fact Check Unit of the Press Information Bureau flagged the video as fabricated, confirmed no such statement had been made by the President, and shared the genuine unedited footage, urging the public to verify suspicious claims before sharing.",
+    type: "psyops", sev: "high",
+    platform: "Social media (platform not specified in source)", reach: "Unquantified",
+    date: "2025-11-27", source: "PIB Fact Check / All India Radio (newsonair.gov.in)", actor: "Pakistani propaganda accounts",
+    foundDate: "2026-08-31",
+    pullNote: "Single-source (PIB/AIR) claim, similar sourcing profile to pending-20260817-01 — no independent outlet corroboration found in this pull. Targets the Head of State specifically, which is why it's flagged 'high' despite the thin sourcing; worth weighing that against the single-source caveat before promoting."
+  },
+  {
+    id: "pending-20260831-02",
+    title: "ISPR launches counter-narrative offensive and fake-handle campaign against Discovery's 'Declassified: Operation Sindoor' documentary",
+    detail: "Following the 15 August 2026 premiere of Discovery's two-part documentary 'Declassified: Operation Sindoor' — featuring Indian military leadership on the planning and execution of the operation — Pakistan's Inter-Services Public Relations (ISPR) launched a public counter-narrative campaign disputing the documentary's account and questioning India's stated success rate. Indian intelligence officials cited by IANS said ISPR has been directed to continuously question the documentary's authenticity, and that Pakistani Army/ISI-linked social media handles already active in an information-warfare campaign since Operation Sindoor were expected to amplify the pushback with manipulated videos and images aimed at discrediting the Indian armed forces and government, particularly for international audiences.",
+    type: "social", sev: "medium",
+    platform: "ISPR official channels; Pakistani Army/ISI-linked social media handles", reach: "Unquantified; ongoing at time of reporting",
+    date: "2026-08-19", source: "IANS (via NewsGram)", actor: "ISPR / Pakistan Army-ISI-linked handles",
+    foundDate: "2026-08-31",
+    pullNote: "Single-wire-source (IANS), relying partly on anonymous intelligence-official quotes — treat as a lead worth watching rather than a fully corroborated incident until a second outlet or an on-record source confirms. Freshest item found this pull (4 days old relative to pull date)."
   }
 ].map(i => ({ ...i, pending: true }));
 
@@ -2493,6 +2594,38 @@ const geoKeywords = {
   global:  ['un hrc', 'un general assembly', 'oic', 'eu parliament', 'international', 'global', 'western']
 };
 
+// ── CAMPAIGNS ── groups incidents into the named crisis windows this tracker's report
+// covers, so the Map/Network/Feed can be filtered to one campaign and a shareable link
+// captures that view. Classified in priority order (most specific first) from keywords in
+// the incident text, falling back to date-range membership for entries that don't name the
+// crisis explicitly (e.g. a standalone APT report published during the Sindoor window).
+const campaignDefs = {
+  pulwama_balakot: { label: 'Pulwama–Balakot (2019)', short: 'PULWAMA', color: '#ff9f1c', range: ['2019-02-01','2019-03-31'] },
+  article370:       { label: 'Article 370 Abrogation (2019–21)', short: 'ART.370', color: '#c724ff', range: ['2019-08-01','2021-02-28'] },
+  pahalgam:         { label: 'Pahalgam Attack (Apr 2025)', short: 'PAHALGAM', color: '#ff2d6a', range: ['2025-04-22','2025-05-06'] },
+  sindoor:          { label: 'Operation Sindoor (May 2025–)', short: 'SINDOOR', color: '#2f9bff', range: ['2025-05-07','2026-12-31'] },
+  ongoing:          { label: 'Ongoing / Uncategorised', short: 'OTHER', color: '#8b96ab', range: null }
+};
+const campaignChecks = [
+  ['pulwama_balakot', ['pulwama', 'balakot', 'jem link', 'jaish-e-mohammed']],
+  ['article370',       ['article 370', '370 abrogation', 'abrogation']],
+  ['sindoor',          ['operation sindoor', 'sindoor', 'downed jet', 'shootdown', '6-0 campaign']],
+  ['pahalgam',         ['pahalgam']]
+];
+
+function classifyCampaign(inc, text) {
+  if (inc.campaign && campaignDefs[inc.campaign]) return inc.campaign;
+  const kwMatch = campaignChecks.find(([, kws]) => kws.some(kw => text.includes(kw)));
+  if (kwMatch) return kwMatch[0];
+  if (inc.date) {
+    const t = new Date(inc.date + 'T00:00:00').getTime();
+    const hit = Object.entries(campaignDefs).find(([, def]) => def.range &&
+      t >= new Date(def.range[0]+'T00:00:00').getTime() && t <= new Date(def.range[1]+'T00:00:00').getTime());
+    if (hit) return hit[0];
+  }
+  return 'ongoing';
+}
+
 function enrichIncident(inc) {
   const text = `${inc.title||''} ${inc.detail||''} ${inc.platform||''} ${inc.source||''}`.toLowerCase();
 
@@ -2567,6 +2700,9 @@ function enrichIncident(inc) {
     inc._confidence = 'likely';
   }
 
+  // Campaign — which named crisis window this incident belongs to (see classifyCampaign above).
+  inc._campaign = classifyCampaign(inc, text);
+
   return inc;
 }
 
@@ -2592,6 +2728,7 @@ const confidenceMeta = {
 };
 
 let currentFilter = 'all';
+let currentCampaignFilter = 'all';
 let searchTerm = '';
 let mapRendered = false;
 let networkRendered = false;
@@ -3196,6 +3333,7 @@ function filterFeedByDate(dateStr) {
 function exportData(format) {
   const filtered = incidents.filter(inc => {
     const matchFilter = currentFilter === 'all' || inc.type === currentFilter;
+    const matchCampaign = currentCampaignFilter === 'all' || inc._campaign === currentCampaignFilter;
     const matchSearch = !searchTerm ||
       inc.title.toLowerCase().includes(searchTerm) ||
       inc.detail.toLowerCase().includes(searchTerm) ||
@@ -3204,7 +3342,7 @@ function exportData(format) {
       const t = new Date(inc.date + 'T00:00:00').getTime();
       return t >= timelineActiveRange[0] && t <= timelineActiveRange[1];
     })();
-    return matchFilter && matchSearch && matchTimeline;
+    return matchFilter && matchCampaign && matchSearch && matchTimeline;
   }).sort((a,b) => new Date(b.date) - new Date(a.date));
 
   const exportFields = ['id','title','detail','type','sev','platform','reach','date','source','actor','targets','site'];
@@ -3261,6 +3399,7 @@ function renderFeed() {
 
   sorted.forEach(inc => {
     const matchFilter = currentFilter === 'all' || inc.type === currentFilter;
+    const matchCampaign = currentCampaignFilter === 'all' || inc._campaign === currentCampaignFilter;
     const matchSearch = !searchTerm ||
       inc.title.toLowerCase().includes(searchTerm) ||
       inc.detail.toLowerCase().includes(searchTerm) ||
@@ -3269,13 +3408,14 @@ function renderFeed() {
       const t = new Date(inc.date + 'T00:00:00').getTime();
       return t >= timelineActiveRange[0] && t <= timelineActiveRange[1];
     })();
-    const show = matchFilter && matchSearch && matchTimeline;
+    const show = matchFilter && matchCampaign && matchSearch && matchTimeline;
     if (show) visible++;
 
     const platKey = (inc.platform||'').toLowerCase().split('/')[0].trim();
     const platColor = platColors[platKey] || 'var(--text-dim)';
     const tier = tierMeta[inc._tier] || tierMeta.other;
     const conf = confidenceMeta[inc._confidence] || confidenceMeta.likely;
+    const camp = campaignDefs[inc._campaign] || campaignDefs.ongoing;
     const ann = getAnnotation(inc.id);
 
     cards += `<div class="incident-card sev-${inc.sev} ${show?'visible':''}" data-id="${inc.id}" id="incident-${inc.id}">
@@ -3285,6 +3425,7 @@ function renderFeed() {
           <span class="sev-badge sev-${inc.sev}">${inc.sev}</span>
           <span class="tier-badge" style="color:${tier.color};border-color:${tier.color}55;" title="${tier.label}">${tier.short}</span>
           <span class="tier-badge" style="color:${conf.color};border-color:${conf.color}55;" title="${conf.label}">${conf.icon} ${conf.short}</span>
+          <span class="tier-badge" style="color:${camp.color};border-color:${camp.color}55;" title="${camp.label}">${camp.short}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="card-icon-btn ${ann.flag==='verified'?'active-verified':''}" onclick="toggleFlag(${inc.id},'verified')" title="Mark verified">✓</button>
@@ -3392,8 +3533,151 @@ function updateReachStat() {
   if (wrap) wrap.title = 'Sum of the largest reported views/subscribers/tweets/accounts figure per incident, where a number is stated. This is total views and mentions, not unique people \u2014 the same viewer is counted every time they watch another clip, and audiences overlap heavily across incidents. Not a reach or unique-audience estimate. Incidents with no stated figure are excluded rather than guessed at.';
 }
 
+// ── IW INTENSITY INDEX ── a composite per-campaign score, in the spirit of a stress index:
+// normalized volume + confirmed-attribution share + source-authority share + severity share,
+// with a floor rule so a campaign that's gone quiet but has verified incidents on record
+// doesn't silently drop out of view just because recent volume is low.
+function computeCampaignIndex() {
+  const keys = Object.keys(campaignDefs);
+  const byCampaign = {};
+  keys.forEach(k => { byCampaign[k] = incidents.filter(i => i._campaign === k); });
+  const maxVol = Math.max(...keys.map(k => byCampaign[k].length), 1);
+
+  return keys.map(key => {
+    const list = byCampaign[key];
+    const vol = list.length;
+    const pct = (n) => vol ? Math.round((n / vol) * 100) : 0;
+    const confirmedCount = list.filter(i => i._confidence === 'confirmed').length;
+    const authoritativeCount = list.filter(i => ['gov','academic','thinktank'].includes(i._tier)).length;
+    const criticalCount = list.filter(i => i.sev === 'critical').length;
+
+    const volScore = Math.round((vol / maxVol) * 100);
+    const confirmedScore = pct(confirmedCount);
+    const authorityScore = pct(authoritativeCount);
+    const severityScore = pct(criticalCount);
+
+    let composite = Math.round(0.35*volScore + 0.25*confirmedScore + 0.20*authorityScore + 0.20*severityScore);
+    const floorApplied = confirmedCount >= 1 && composite < 40;
+    if (floorApplied) composite = 40;
+    composite = Math.max(0, Math.min(100, composite));
+
+    return { key, def: campaignDefs[key], vol, confirmedCount, authoritativeCount, criticalCount, composite, floorApplied };
+  }).sort((a,b) => b.composite - a.composite);
+}
+
+function renderCampaignIndex() {
+  const host = document.getElementById('campaignIndexHost');
+  if (!host) return;
+  const rows = computeCampaignIndex();
+  host.innerHTML = rows.map(r => `
+    <div onclick="setCampaignFilter('${r.key}'); document.querySelector('.tab-btn[data-tab=\\'feed\\']').click();"
+         style="cursor:pointer;border:1px solid ${r.def.color}40;border-radius:8px;padding:14px;background:linear-gradient(180deg, ${r.def.color}14, transparent);transition:border-color .15s;"
+         onmouseover="this.style.borderColor='${r.def.color}90'" onmouseout="this.style.borderColor='${r.def.color}40'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:${r.def.color};text-transform:uppercase;">${r.def.short}${r.floorApplied ? ' ⚑' : ''}</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:${r.def.color};line-height:1;">${r.composite}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-bright);margin-top:4px;font-weight:600;">${r.def.label}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;">
+        <span>${r.vol} incident${r.vol===1?'':'s'}</span>
+        <span>${r.confirmedCount} confirmed</span>
+        <span>${r.authoritativeCount} authoritative-source</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── NATIONAL IW POSTURE INDEX ── a single top-line aggregate across all campaigns,
+// in the spirit of CONTAINMENT's composite Global Status: four toggleable factors,
+// each 0-100, combined into one score. Reuses computeCampaignIndex() rather than
+// re-deriving campaign intensity from scratch.
+let postureFactorState = { intensity: true, recency: true, severity: true, response: true };
+
+function computeNationalPosture() {
+  const threatIncidents = incidents.filter(i => i.type !== 'response');
+  const respCount = incidents.filter(i => i.type === 'response').length;
+  const campaignRows = computeCampaignIndex();
+
+  // 1. Intensity: volume-weighted mean of the existing per-campaign composites
+  const totalVol = campaignRows.reduce((s, r) => s + r.vol, 0);
+  const intensity = totalVol
+    ? Math.round(campaignRows.reduce((s, r) => s + r.composite * r.vol, 0) / totalVol)
+    : 0;
+
+  // 2. Recency: share of threat incidents logged in the last 30 days
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
+  const recentCount = threatIncidents.filter(i => new Date(i.date) >= cutoff).length;
+  const recency = threatIncidents.length ? Math.round((recentCount / threatIncidents.length) * 100) : 0;
+
+  // 3. Severity: share of threat incidents rated critical
+  const criticalCount = threatIncidents.filter(i => i.sev === 'critical').length;
+  const severity = threatIncidents.length ? Math.round((criticalCount / threatIncidents.length) * 100) : 0;
+
+  // 4. Response gap: fewer logged Indian-response entries relative to threat volume
+  //    = a bigger gap = a higher (worse) contribution to the score.
+  //    Scaling is illustrative: a 25%+ response-to-threat ratio is treated as full coverage.
+  const responseRatio = threatIncidents.length ? respCount / threatIncidents.length : 0;
+  const coverage = Math.min(100, Math.round(responseRatio * 400));
+  const responseGap = 100 - coverage;
+
+  const factors = [
+    { id: 'intensity', label: 'Campaign Intensity', val: intensity, color: 'var(--accent2)' },
+    { id: 'recency',   label: '30-Day Recency',     val: recency,   color: 'var(--teal)' },
+    { id: 'severity',  label: 'Critical-Sev Share',  val: severity,  color: 'var(--accent)' },
+    { id: 'response',  label: 'Response Gap',        val: responseGap, color: 'var(--blue)' },
+  ];
+
+  const active = factors.filter(f => postureFactorState[f.id]);
+  const composite = active.length
+    ? Math.round(active.reduce((s, f) => s + f.val, 0) / active.length)
+    : 0;
+
+  return { factors, composite };
+}
+
+function statusForPosture(score) {
+  if (score >= 70) return { label: 'CRITICAL', cls: 'critical' };
+  if (score >= 40) return { label: 'ELEVATED', cls: 'elevated' };
+  return { label: 'GUARDED', cls: 'guarded' };
+}
+
+function renderNationalPosture() {
+  const scoreEl = document.getElementById('postureScore');
+  if (!scoreEl) return; // widget only lives on the Analytics tab
+  const { factors, composite } = computeNationalPosture();
+  const status = statusForPosture(composite);
+
+  scoreEl.textContent = composite;
+  const statusEl = document.getElementById('postureStatus');
+  statusEl.textContent = status.label;
+  statusEl.className = 'posture-status ' + status.cls;
+
+  const track = document.getElementById('postureBarTrack');
+  const activeFactors = factors.filter(f => postureFactorState[f.id]);
+  const sum = activeFactors.reduce((s, f) => s + f.val, 0) || 1;
+  track.innerHTML = activeFactors.map(f =>
+    `<div class="posture-bar-seg" style="width:${(f.val / sum) * 100}%;background:${f.color}"></div>`
+  ).join('');
+
+  const host = document.getElementById('postureFactors');
+  host.innerHTML = factors.map(f => `
+    <button class="posture-factor ${postureFactorState[f.id] ? 'on' : 'off'}"
+            style="color:${f.color}" onclick="togglePostureFactor('${f.id}')">
+      <span class="posture-factor-name">${f.label}</span>
+      <span class="posture-factor-val">${f.val}</span>
+    </button>
+  `).join('');
+}
+
+function togglePostureFactor(id) {
+  postureFactorState[id] = !postureFactorState[id];
+  renderNationalPosture();
+}
+
 function updateStats() {
   renderCalendarHeatmap();
+  renderCampaignIndex();
+  renderNationalPosture();
   const total = incidents.length;
   const critical = incidents.filter(i => i.sev === 'critical').length;
   const now = new Date();
@@ -3614,21 +3898,40 @@ function deleteIncident(id) {
 }
 
 // ── FILTERS ──
-document.querySelectorAll('.pill').forEach(btn => {
+document.querySelectorAll('.pill:not(.pill-campaign)').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
     renderFeed();
     syncFilterHighlights();
+    syncURLState();
   });
 });
 
+document.querySelectorAll('.pill-campaign').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pill-campaign').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCampaignFilter = btn.dataset.campaign;
+    renderFeed();
+    syncURLState();
+  });
+});
+
+function setCampaignFilter(campaign) {
+  currentCampaignFilter = campaign || 'all';
+  document.querySelectorAll('.pill-campaign').forEach(b => b.classList.toggle('active', b.dataset.campaign === currentCampaignFilter));
+  renderFeed();
+  syncURLState();
+}
+
 function filterByVector(type) {
   currentFilter = (currentFilter === type) ? 'all' : type; // click again to clear
-  document.querySelectorAll('.pill').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
+  document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
   renderFeed();
   syncFilterHighlights();
+  syncURLState();
   document.getElementById('incidentFeed').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -3640,7 +3943,68 @@ function syncFilterHighlights() {
 document.getElementById('searchBox').addEventListener('input', e => {
   searchTerm = e.target.value.toLowerCase().trim();
   renderFeed();
+  syncURLState();
 });
+
+// ── URL-ENCODED VIEW STATE ── mirrors the tab/type/campaign/search filters into the URL
+// query string (no page reload — history.replaceState) so a specific filtered view is a
+// shareable, citable link, the same way map layer selections are encoded in the address bar
+// on comparable OSINT dashboards. Restored on load by restoreURLState().
+let _urlSyncTimer = null;
+function syncURLState() {
+  clearTimeout(_urlSyncTimer);
+  _urlSyncTimer = setTimeout(() => {
+    const url = new URL(window.location.href);
+    const activeTab = document.querySelector('.tab-btn.active');
+    const tab = activeTab ? activeTab.dataset.tab : 'feed';
+    const setOrDelete = (key, val, def) => { if (val && val !== def) url.searchParams.set(key, val); else url.searchParams.delete(key); };
+    setOrDelete('tab', tab, 'feed');
+    setOrDelete('type', currentFilter, 'all');
+    setOrDelete('campaign', currentCampaignFilter, 'all');
+    setOrDelete('q', searchTerm, '');
+    if (url.searchParams.has('incident')) url.searchParams.delete('incident'); // per-incident links are separate from view-state links
+    history.replaceState(null, '', url.toString());
+  }, 200);
+}
+
+function restoreURLState() {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  const type = params.get('type');
+  const campaign = params.get('campaign');
+  const q = params.get('q');
+
+  if (type && (typeLabels[type] || type === 'response')) {
+    currentFilter = type;
+    document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.toggle('active', b.dataset.filter === type));
+  }
+  if (campaign && campaignDefs[campaign]) {
+    currentCampaignFilter = campaign;
+    document.querySelectorAll('.pill-campaign').forEach(b => b.classList.toggle('active', b.dataset.campaign === campaign));
+  }
+  if (q) {
+    searchTerm = q.toLowerCase().trim();
+    const box = document.getElementById('searchBox');
+    if (box) box.value = q;
+  }
+  if (tab) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.click();
+  }
+  renderFeed();
+  syncFilterHighlights();
+}
+
+function copyFilteredViewLink() {
+  syncURLState();
+  setTimeout(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      showToast('Filtered view link copied — reopens this exact tab + filter combination');
+    }).catch(() => {
+      prompt('Copy this link:', window.location.href);
+    });
+  }, 210);
+}
 
 // ── CLOCK ──
 function updateClock() {
@@ -3916,6 +4280,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'newsmonitor' && !newsMonitorRendered) { runGdeltSearch(); newsMonitorRendered = true; }
     if (btn.dataset.tab === 'connections' && !connectionsRendered) { renderConnections(); connectionsRendered = true; }
     if (btn.dataset.tab === 'pending') { renderPending(); }
+    syncURLState();
   });
 });
 
@@ -4787,7 +5152,9 @@ function jumpToIncident(id) {
   if (!inc) return;
   document.querySelector('.tab-btn[data-tab="feed"]').click();
   currentFilter = 'all';
-  document.querySelectorAll('.pill').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  currentCampaignFilter = 'all';
+  document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  document.querySelectorAll('.pill-campaign').forEach(b => b.classList.toggle('active', b.dataset.campaign === 'all'));
   searchTerm = '';
   document.getElementById('searchBox').value = '';
   renderFeed();
@@ -4946,6 +5313,7 @@ enrichAll();
 initTimelineScrubber();
 renderFeed();
 renderPending();
+restoreURLState();
 jumpToIncidentFromURL();
 updateBackupBanner();
 // Auto-generate brief after short delay
