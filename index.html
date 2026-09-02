@@ -2389,7 +2389,10 @@ const pullLog = [
     note: "First pull. Declined: an April 2026 organiser.org '40 fabricated claims' compilation (no credited investigative source, couldn't independently verify the claim list) and CloudSEK/PIB items that duplicated entries already in the registry (Gen Dwivedi/Rajnath Singh deepfakes, hacktivist claim debunks)." },
   { date: "2026-08-31", sourcesChecked: "PIB Fact Check, AIR/newsonair.gov.in, IANS wire (via NewsGram), DFRAC, general web search",
     found: 2, declined: 2,
-    note: "Declined: an Oct 2025 fake-video item re: Western Command Chief Lt Gen Manoj Kumar/Taliban claim — this pull could not confirm explicit Pakistan attribution in the source, worth re-checking with the original PIB release rather than the secondary writeup; and an April 2026 DFRAC item on a Pakistan-linked network active during the Iran-Israel-US conflict, which appears to substantially overlap the March 2026 wave already logged (Gen Dwivedi/Rajnath Singh/IRIS Dena deepfakes, Nitin Mohan/Bahrain claim already pending) rather than describing a distinct incident." }
+    note: "Declined: an Oct 2025 fake-video item re: Western Command Chief Lt Gen Manoj Kumar/Taliban claim — this pull could not confirm explicit Pakistan attribution in the source, worth re-checking with the original PIB release rather than the secondary writeup; and an April 2026 DFRAC item on a Pakistan-linked network active during the Iran-Israel-US conflict, which appears to substantially overlap the March 2026 wave already logged (Gen Dwivedi/Rajnath Singh/IRIS Dena deepfakes, Nitin Mohan/Bahrain claim already pending) rather than describing a distinct incident." },
+  { date: "2026-09-02", sourcesChecked: "PIB Fact Check, DFRAC, CloudSEK, Caliber.az, general web search",
+    found: 2, declined: 0,
+    note: "Second pull found no incidents newer than the last pull date that weren't already covered by existing entries — most results were repeats of the March/April 2026 Iran-Israel-US wave or the May 2025 Sindoor-era material. Both items added are real gaps: one from Oct 2025 that fell outside prior pulls' search terms, and one that directly extends the pending 19 Aug 2026 ISPR/Sindoor-documentary entry rather than standing alone." }
 ];
 
 const pendingSeed = [
@@ -2432,6 +2435,26 @@ const pendingSeed = [
     date: "2026-08-19", source: "IANS (via NewsGram)", actor: "ISPR / Pakistan Army-ISI-linked handles",
     foundDate: "2026-08-31",
     pullNote: "Single-wire-source (IANS), relying partly on anonymous intelligence-official quotes — treat as a lead worth watching rather than a fully corroborated incident until a second outlet or an on-record source confirms. Freshest item found this pull (4 days old relative to pull date)."
+  },
+  {
+    id: "pending-20260902-01",
+    title: "AI-generated deepfake falsely attributes political comments to Lt Gen Manjinder Singh",
+    detail: "On 31 October 2025, PIB's Fact Check unit identified a digitally altered video circulating via Pakistani propaganda accounts that falsely attributed comments to Lieutenant General Manjinder Singh, Commander of the South Western Army, claiming he had criticised Indian Army exercises as 'political optics to boost the image for the Bihar elections.' PIB confirmed the video was AI-generated and that no such statement was made — the genuine underlying footage, recorded in Bikaner, Rajasthan, shows Lt Gen Singh discussing the Army's actual training posture and the 'New Normal' doctrine on responding to terror acts.",
+    type: "psyops", sev: "high",
+    platform: "Social media (Pakistani propaganda accounts)", reach: "Unquantified",
+    date: "2025-10-31", source: "PIB Fact Check (via ANI/Tribune India)", actor: "Pakistani propaganda accounts",
+    foundDate: "2026-09-02",
+    pullNote: "Single-source (PIB/ANI) but a clear, named target and explicit AI-generation confirmation. Falls in a gap between the two prior pulls' search terms rather than being newly occurred — a reminder that date-bounded pulls can still miss items from well before the pull window. Flagged 'high' given it targets a serving general officer and ties the fabricated quote to a live domestic political controversy (Bihar elections), which is a distinct escalation pattern from the earlier deepfakes in this registry."
+  },
+  {
+    id: "pending-20260902-02",
+    title: "ISPR calls the Sindoor documentary 'propaganda,' extending the campaign flagged in the prior pull",
+    detail: "Roughly a week before this pull, ISPR issued a fresh public statement on the Discovery documentary 'Declassified: Operation Sindoor' (already tracked as pending-20260831-02), calling it a 'Bollywood-style' production and accusing its creators of having 'hastily compiled propaganda video to project a military blunder as a successful endeavour.' The statement invoked Pakistan's own 'Marka-i-Haq' framing, saying 'more than a year after Marka-i-Haq, India refuses to face the harsh reality.' Reported via Caliber.az, citing Kashmir Media Service.",
+    type: "social", sev: "medium",
+    platform: "ISPR official statements, amplified via Kashmir Media Service", reach: "Unquantified",
+    date: "2026-08-25", source: "Caliber.az, citing Kashmir Media Service", actor: "ISPR",
+    foundDate: "2026-09-02",
+    pullNote: "Two removes from the primary source (Caliber.az citing Kashmir Media Service, a Pakistan-administered-Kashmir outlet with its own alignment) — treat the direct quotes as attributed to ISPR but not independently re-verified against an ISPR primary release. This is best read as a continuation of pending-20260831-02 rather than a standalone incident — consider merging the two if both are promoted, since they describe the same ongoing campaign against the same documentary."
   }
 ].map(i => ({ ...i, pending: true }));
 
