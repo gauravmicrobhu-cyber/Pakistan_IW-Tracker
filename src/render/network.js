@@ -1,6 +1,7 @@
 import { incidents } from '../state.js';
 import { targetLabels } from '../data/lookups.js';
 import { formatDate } from '../logic/dates.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { globalSelectedActor, setGlobalActorFocus } from './actorDossier.js';
 
 export let netSelectedNode = null;
@@ -130,12 +131,12 @@ export function selectNetNode(d) {
     .sort((a,b)=> new Date(b.date)-new Date(a.date)).slice(0,10);
 
   sidebar.innerHTML = `
-    <div class="net-detail-title">${d.label}</div>
+    <div class="net-detail-title">${escapeHtml(d.label)}</div>
     <div class="net-detail-type">${d.type} · ${d.count} incident${d.count===1?'':'s'}</div>
     <div class="net-detail-list-title">Connected nodes (${connected.length})</div>
-    ${connected.map(c => `<div class="net-conn-row">${c.label} <span style="color:var(--text-dim);font-family:var(--mono);font-size:9px;">${c.type}</span></div>`).join('') || '<div class="net-conn-row">None</div>'}
+    ${connected.map(c => `<div class="net-conn-row">${escapeHtml(c.label)} <span style="color:var(--text-dim);font-family:var(--mono);font-size:9px;">${c.type}</span></div>`).join('') || '<div class="net-conn-row">None</div>'}
     <div class="net-detail-list-title">Related incidents</div>
-    ${relatedIncidents.map(i => `<div class="map-inc-item" onclick="jumpToIncident(${i.id})"><div class="map-inc-title">${i.title}</div><div class="map-inc-meta">${formatDate(i.date)} · ${i.sev}</div></div>`).join('')}
+    ${relatedIncidents.map(i => `<div class="map-inc-item" onclick="jumpToIncident(${i.id})"><div class="map-inc-title">${escapeHtml(i.title)}</div><div class="map-inc-meta">${formatDate(i.date)} · ${i.sev}</div></div>`).join('')}
   `;
 
   // re-render to show selection ring; actor nodes also cross-highlight Map/Connections

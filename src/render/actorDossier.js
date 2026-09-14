@@ -1,6 +1,7 @@
 import { incidents, mapRendered, networkRendered, connectionsRendered } from '../state.js';
 import { typeColor, typeLabels } from '../data/lookups.js';
 import { formatDate } from '../logic/dates.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { renderMap } from './map.js';
 import { renderNetwork } from './network.js';
 import { renderConnections } from './connections.js';
@@ -57,7 +58,7 @@ export function openActorDossier(actorName) {
 
   const platforms = {};
   related.forEach(i => (i.platform||'').split(/[,\/]/).map(p=>p.trim()).filter(Boolean).forEach(p => { platforms[p] = (platforms[p]||0)+1; }));
-  const topPlatforms = Object.entries(platforms).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,c]) => `${p} (${c})`).join(', ');
+  const topPlatforms = Object.entries(platforms).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,c]) => `${escapeHtml(p)} (${c})`).join(', ');
 
   document.getElementById('dossierBody').innerHTML = `
     <div class="dossier-stats">
@@ -70,7 +71,7 @@ export function openActorDossier(actorName) {
     <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:1.25rem;">TOP PLATFORMS: ${topPlatforms || 'n/a'}</div>
     ${renderMitreTTPSection(actorName)}
     <div class="net-detail-list-title" style="margin-top:0;">All incidents</div>
-    ${related.map(i => `<div class="map-inc-item" onclick="closeActorDossier(); jumpToIncident(${i.id})"><div class="map-inc-title">${i.title}</div><div class="map-inc-meta">${typeLabels[i.type]||i.type} · ${i.sev} · ${formatDate(i.date)}</div></div>`).join('')}
+    ${related.map(i => `<div class="map-inc-item" onclick="closeActorDossier(); jumpToIncident(${i.id})"><div class="map-inc-title">${escapeHtml(i.title)}</div><div class="map-inc-meta">${typeLabels[i.type]||i.type} · ${i.sev} · ${formatDate(i.date)}</div></div>`).join('')}
   `;
 
   document.getElementById('actorDossierOverlay').classList.add('show');

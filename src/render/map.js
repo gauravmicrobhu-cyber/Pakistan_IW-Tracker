@@ -2,6 +2,7 @@ import { incidents, setCurrentFilter, setCurrentCampaignFilter, setSearchTerm } 
 import { geoDefs, siteDefs, geoColor, typeLabels } from '../data/lookups.js';
 import { greatCircleArc } from '../logic/geo.js';
 import { formatDate } from '../logic/dates.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { globalSelectedActor } from './actorDossier.js';
 import { renderTicker } from './connections.js';
 import { renderFeed } from './feed.js';
@@ -205,7 +206,7 @@ export function renderMapSidebar(kind, key) {
         : '';
       return `
       <div class="map-inc-item" onclick="jumpToIncident(${i.id})">
-        <div class="map-inc-title">${i.title}${tagBadge}</div>
+        <div class="map-inc-title">${escapeHtml(i.title)}${tagBadge}</div>
         <div class="map-inc-meta">${typeLabels[i.type]||i.type} · ${i.sev} · ${formatDate(i.date)}</div>
       </div>
     `;}).join('');

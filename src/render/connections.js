@@ -2,6 +2,7 @@ import { incidents } from '../state.js';
 import { typeColor, typeLabels } from '../data/lookups.js';
 import { clusterByDate, labelCluster, normalizeSourceName } from '../logic/cluster.js';
 import { formatDate } from '../logic/dates.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { globalSelectedActor, setGlobalActorFocus } from './actorDossier.js';
 import { jumpToIncident } from './map.js';
 
@@ -88,7 +89,7 @@ export function renderConnections() {
         ${c.map(i => `
           <div class="cluster-item-row" onclick="jumpToIncident(${i.id})">
             <span class="cluster-item-date">${formatDate(i.date)}</span>
-            <span class="map-inc-title">${i.title}</span>
+            <span class="map-inc-title">${escapeHtml(i.title)}</span>
           </div>
         `).join('')}
       </div>
@@ -106,9 +107,9 @@ export function renderConnections() {
       <tbody>
         ${recurRows.map(r => `
           <tr>
-            <td><span class="recur-name">${r.name}</span><span class="recur-kind-badge">${r.kind}</span></td>
+            <td><span class="recur-name">${escapeHtml(r.name)}</span><span class="recur-kind-badge">${r.kind}</span></td>
             <td class="recur-count">${r.count}</td>
-            <td>${r.incs.map(i => `<span class="recur-inc-link" onclick="jumpToIncident(${i.id})">${i.title}</span>`).join('')}</td>
+            <td>${r.incs.map(i => `<span class="recur-inc-link" onclick="jumpToIncident(${i.id})">${escapeHtml(i.title)}</span>`).join('')}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -118,7 +119,7 @@ export function renderConnections() {
   // ── RENDER: platform bars ──
   platHost.innerHTML = platSorted.length ? platSorted.map(([name,count]) => `
     <div class="plat-bar-row">
-      <div class="plat-bar-label">${name}</div>
+      <div class="plat-bar-label">${escapeHtml(name)}</div>
       <div class="plat-bar-track"><div class="plat-bar-fill" style="width:${Math.max(4, 100*count/maxPlat)}%"></div></div>
       <div class="plat-bar-count">${count}</div>
     </div>
@@ -127,9 +128,9 @@ export function renderConnections() {
   // ── RENDER: cross-mentions ──
   mentionsHost.innerHTML = dedupedMentions.length ? dedupedMentions.slice(0,25).map(m => `
     <div class="mention-row">
-      <span class="mention-link" onclick="jumpToIncident(${m.from.id})">${m.from.title}</span>
-      <span class="mention-arrow">→ names "${m.via}" →</span>
-      <span class="mention-link" onclick="jumpToIncident(${m.to.id})">${m.to.title}</span>
+      <span class="mention-link" onclick="jumpToIncident(${m.from.id})">${escapeHtml(m.from.title)}</span>
+      <span class="mention-arrow">→ names "${escapeHtml(m.via)}" →</span>
+      <span class="mention-link" onclick="jumpToIncident(${m.to.id})">${escapeHtml(m.to.title)}</span>
     </div>
   `).join('') : '<div class="map-empty">No incident\'s own text explicitly names another logged actor/source yet.</div>';
 
@@ -285,10 +286,10 @@ export function selectCmNode(d, links) {
     .map(l => l.source.id === d.id ? l.target : l.source);
 
   sidebar.innerHTML = `
-    <div class="net-detail-title">${d.label}</div>
+    <div class="net-detail-title">${escapeHtml(d.label)}</div>
     <div class="net-detail-type">${d.kind.replace('-hub','')} · ${d.count} linked incident(s)</div>
     <div class="net-detail-list-title">Connected incidents</div>
-    ${connected.map(c => `<div class="map-inc-item" onclick="jumpToIncident(${c.incident.id})"><div class="map-inc-title">${c.incident.title}</div><div class="map-inc-meta">${formatDate(c.incident.date)} · ${c.incident.sev}</div></div>`).join('')}
+    ${connected.map(c => `<div class="map-inc-item" onclick="jumpToIncident(${c.incident.id})"><div class="map-inc-title">${escapeHtml(c.incident.title)}</div><div class="map-inc-meta">${formatDate(c.incident.date)} · ${c.incident.sev}</div></div>`).join('')}
   `;
 
   if (d.kind === 'actor-hub') setGlobalActorFocus(d.label);
