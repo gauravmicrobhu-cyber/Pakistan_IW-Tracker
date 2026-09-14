@@ -17,6 +17,4 @@ GITHUB_REPO = "Pakistan_IW-Tracker"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-# Placeholder — run `wrangler kv namespace create RATE_LIMIT_KV` and paste the "id" it prints
-# here before deploying. Deploy will fail with this placeholder still in place.
-id = "REPLACE_AFTER_RUNNING_wrangler_kv_namespace_create"
+id = "5cc344475e4c41be9faf77bc34f40e2c"
