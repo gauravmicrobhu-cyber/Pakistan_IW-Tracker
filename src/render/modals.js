@@ -2,6 +2,7 @@ import { incidents } from '../state.js';
 import { changelogData } from '../data/changelogData.js';
 import { cmdPaletteTabs } from '../data/cmdPaletteTabs.js';
 import { formatDate } from '../logic/dates.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { openActorDossier } from './actorDossier.js';
 import { jumpToIncident } from './map.js';
 
@@ -144,7 +145,7 @@ export function runCmdPaletteSearch(q) {
   }
 
   results.innerHTML = items.map((it, idx) =>
-    `<div class="cmd-result-row" data-idx="${idx}"><span class="cmd-result-type">${it.type}</span><span class="cmd-result-title">${it.label}</span>${it.meta ? `<span class="cmd-result-meta">${it.meta}</span>` : ''}</div>`
+    `<div class="cmd-result-row" data-idx="${idx}"><span class="cmd-result-type">${it.type}</span><span class="cmd-result-title">${escapeHtml(it.label)}</span>${it.meta ? `<span class="cmd-result-meta">${escapeHtml(it.meta)}</span>` : ''}</div>`
   ).join('');
 
   Array.from(results.children).forEach((row, idx) => {

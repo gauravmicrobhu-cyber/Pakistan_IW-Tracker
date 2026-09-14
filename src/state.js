@@ -1,4 +1,5 @@
 import { seedIncidents } from './data/seedIncidents.js';
+import communityIncidentsRaw from './data/communityIncidents.json';
 import { enrichIncident } from './logic/enrichIncident.js';
 
 export const STORAGE_KEY = 'prism_iw_incidents';
@@ -6,6 +7,15 @@ export const STORAGE_KEY = 'prism_iw_incidents';
 export const VERSION_KEY  = 'prism_iw_seed_version';
 
 export const SEED_VERSION = 18; // bump this whenever the curated seed list below changes
+
+// ── COMMUNITY INCIDENTS ── approved via the public GitOps submission pipeline (Log Incident
+// form → Cloudflare Worker → GitHub Issue → human `approved` label → Actions workflow appends
+// to this file and pushes to main). Static, build-time/deploy-time data refreshed on every
+// deploy — like seedIncidents, it is never cached in or read from localStorage (see
+// saveIncidents() below, which strips it back out before persisting). `community: true`
+// distinguishes it from both the curated seed set and any genuinely local/personal incidents a
+// user's browser still holds from before this pipeline existed.
+export const communityIncidents = communityIncidentsRaw.map(i => ({ ...i, seed: false, community: true }));
 
 
 export let incidents = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -16,29 +26,33 @@ export const needsReseed = storedVersion < SEED_VERSION;
 
 // Seed data if empty, OR if the curated seed set has been updated since last visit.
 // User-added incidents (logged via the form, not part of the curated seed) are preserved either way.
+// Community incidents are NOT persisted here — see the unconditional merge below.
 if (incidents.length === 0 || needsReseed) {
-  const userAdded = incidents.filter(i => !i.seed);
+  const userAdded = incidents.filter(i => !i.seed && !i.community);
   incidents = [...seedIncidents, ...userAdded];
   localStorage.setItem(VERSION_KEY, String(SEED_VERSION));
   saveIncidents();
 }
 
+// Community incidents are merged in on every load, unconditionally — not gated behind the
+// seed-reseed-version check above, since they're refreshed by every deploy rather than versioned
+// the way the curated seed set is.
+incidents = [...incidents.filter(i => !i.community), ...communityIncidents];
+
 export function saveIncidents() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
+  // Community incidents are build-time data (this file, refreshed each deploy) — never written
+  // back to localStorage, so a stale locally-cached copy can never shadow a newer deployed one.
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents.filter(i => !i.community)));
 }
 
 // ── PENDING REVIEW QUEUE ──
-// Populated by sourced research pulls, run on request ("run a pull") rather than on a schedule.
-// Candidates are checked against the same source-tier + independent-corroboration bar as the main
-// registry (see enrichIncident below) before landing here — but they still don't count toward
-// incidents, charts, the map, or reach totals until a human promotes them. A pull that can't clear
-// the bar for a lead doesn't add a weak entry; it's simply not added, same as declining an
-// uncorroborated claim outright (see changelog v17).
-
-export const PENDING_ACTIONED_KEY = 'prism_iw_pending_actioned'; // ids the user has promoted or dismissed
-
-// Log of pull runs — each entry records when a pull ran, what it checked, and what it found.
-// Purely informational (shown in the Pending Review banner); doesn't affect data.
+// The live queue is now sourced from open GitHub Issues labeled `submission:pending` (see
+// src/render/pending.js), fetched client-side from GitHub's public REST API — there is no more
+// localStorage-based promote/dismiss state to track here; moderation happens on GitHub via
+// issue labels (`approved`/`declined`), handled by .github/workflows/promote-submission.yml.
+// pendingSeed/pullLog (src/data/) remain as a read-only historical record of research pulls run
+// before that pipeline existed — informational only, shown in the Pending Review tab's "Past
+// Research Pulls" section.
 
 export function enrichAll() { incidents.forEach(enrichIncident); }
 
