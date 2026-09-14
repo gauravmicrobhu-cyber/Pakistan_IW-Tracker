@@ -23,9 +23,12 @@ export function renderMap() {
 
   if (!leafletMapInstance) {
     leafletMapInstance = L.map('leafletMap', { worldCopyJump: false, minZoom: 2, maxZoom: 8, zoomControl: true });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd', maxZoom: 19
+    // CARTO's free anonymous basemap tiles (formerly used here) now require an API key/account
+    // and return a blocked "API key required" placeholder tile without one — switched to Esri's
+    // dark-gray-canvas basemap, which is free with no signup, for the same minimal dark look.
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      maxZoom: 16
     }).addTo(leafletMapInstance);
     leafletMapInstance.setView([30, 45], 3);
   }
