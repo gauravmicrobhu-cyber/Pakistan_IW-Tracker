@@ -14,7 +14,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SUBMISSION_JSON_RE = /<!--\s*SUBMISSION_JSON\r?\n([\s\S]*?)\r?\nSUBMISSION_JSON\s*-->/;
+const SUBMISSION_JSON_RE = /<!--\s*SUBMISSION_JSON\r?\n([\s\S]*?)\r?\nSUBMISSION_JSON\s*-->/g;
 
 const REQUIRED_FIELDS = ['title', 'detail', 'type', 'sev', 'date'];
 
@@ -22,15 +22,29 @@ const REQUIRED_FIELDS = ['title', 'detail', 'type', 'sev', 'date'];
 // Error (never returns null/undefined) so the caller can let the workflow step fail loudly and
 // visibly, per the plan: a submission that can't be parsed should not be silently dropped or
 // silently corrupt the data file — it should make noise so a maintainer can add it manually.
+//
+// Deliberately takes the LAST block in the body, not the first: worker/src/lib.js's
+// buildIssueBody() always appends the Worker-authored, validated block at the very end, AFTER the
+// submitter's own free-text `detail` field. A submitter can put anything in `detail`, including a
+// forged `<!-- SUBMISSION_JSON ... -->` block of their own — if this picked the first match, a
+// forged block placed early in the body would silently override the real, validated one (and the
+// one a reviewer's eye is drawn to in the human-readable header above it). Taking the last match
+// is safe regardless of how many decoy blocks a submitter stuffs into `detail`, because the
+// Worker's own block is always the last thing concatenated into the body no matter what.
 export function parseSubmissionJson(issueBody) {
   const body = issueBody || '';
-  const match = body.match(SUBMISSION_JSON_RE);
-  if (!match) {
+  const re = new RegExp(SUBMISSION_JSON_RE.source, 'g');
+  let match;
+  let lastCapture = null;
+  while ((match = re.exec(body)) !== null) {
+    lastCapture = match[1];
+  }
+  if (lastCapture === null) {
     throw new Error('Could not find a SUBMISSION_JSON block in the issue body.');
   }
   let data;
   try {
-    data = JSON.parse(match[1]);
+    data = JSON.parse(lastCapture);
   } catch (e) {
     throw new Error(`SUBMISSION_JSON block is not valid JSON: ${e.message}`);
   }

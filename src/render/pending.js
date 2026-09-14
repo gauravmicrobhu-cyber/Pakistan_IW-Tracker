@@ -20,18 +20,28 @@ import { GITHUB_OWNER, GITHUB_REPO } from '../config.js';
 // human has reviewed it, so every field pulled from the issue is escaped before it touches
 // innerHTML — see escapeHtml() calls below.
 
-const SUBMISSION_JSON_RE = /<!--\s*SUBMISSION_JSON\r?\n([\s\S]*?)\r?\nSUBMISSION_JSON\s*-->/;
+const SUBMISSION_JSON_RE = /<!--\s*SUBMISSION_JSON\r?\n([\s\S]*?)\r?\nSUBMISSION_JSON\s*-->/g;
 
 // Pulls the embedded machine-readable JSON block out of a submission Issue's body (see
 // worker/src/lib.js buildIssueBody() for the format both sides agree on). Returns null — rather
 // than throwing — for a missing or malformed block, so one bad/hand-edited Issue can't crash the
 // whole tab; the caller falls back to a plain title + "review on GitHub" link in that case.
+//
+// Takes the LAST block in the body, not the first — see the matching comment in
+// scripts/promote-submission.mjs for why: a submitter's own `detail` text (which appears before
+// the Worker's authoritative block) could otherwise contain a forged block that overrides the
+// real one this tab displays.
 export function parseSubmissionIssue(issue) {
   const body = (issue && issue.body) || '';
-  const m = body.match(SUBMISSION_JSON_RE);
-  if (!m) return null;
+  const re = new RegExp(SUBMISSION_JSON_RE.source, 'g');
+  let match;
+  let lastCapture = null;
+  while ((match = re.exec(body)) !== null) {
+    lastCapture = match[1];
+  }
+  if (lastCapture === null) return null;
   try {
-    const data = JSON.parse(m[1]);
+    const data = JSON.parse(lastCapture);
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
     if (!data.title || typeof data.title !== 'string') return null;
     return data;

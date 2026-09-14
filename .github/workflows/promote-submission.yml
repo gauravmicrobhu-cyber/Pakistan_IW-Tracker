@@ -12,7 +12,11 @@ permissions:
   issues: write
 
 concurrency:
-  group: promote-submission-${{ github.event.issue.number }}
+  # One shared queue, not one per issue: every run does `git push` straight to main, and two
+  # different issues approved close together would otherwise run in parallel and race on that
+  # push (second one fails non-fast-forward). Serializing costs nothing for a low-volume
+  # moderation queue — a second approval just waits a few seconds for the first run to finish.
+  group: promote-submission
   cancel-in-progress: false
 
 jobs:

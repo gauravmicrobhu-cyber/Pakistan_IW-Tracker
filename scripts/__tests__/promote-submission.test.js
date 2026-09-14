@@ -56,6 +56,30 @@ describe('parseSubmissionJson', () => {
     const badBody = '<!-- SUBMISSION_JSON\n["not","an","object"]\nSUBMISSION_JSON -->';
     expect(() => parseSubmissionJson(badBody)).toThrow(/plain object/);
   });
+
+  it('uses the LAST block, not the first, when a submitter forges an earlier one in their own detail text', () => {
+    // A submitter's `detail` field is attacker-controlled and lands in the issue body BEFORE the
+    // Worker's own authoritative block (see worker/src/lib.js buildIssueBody()). If this picked the
+    // first match, a forged block embedded inside `detail` would silently override the real one.
+    const forged = { ...validJson, title: 'FORGED — should never win', sev: 'critical' };
+    const real = { ...validJson, title: 'Real submitted incident', sev: 'low' };
+    const body = `**Submitted via the public tracker form.**
+
+**Title:** ${real.title}
+
+Attacker-supplied detail text trying to smuggle a fake block:
+
+<!-- SUBMISSION_JSON
+${JSON.stringify(forged)}
+SUBMISSION_JSON -->
+
+<!-- SUBMISSION_JSON
+${JSON.stringify(real)}
+SUBMISSION_JSON -->`;
+    const parsed = parseSubmissionJson(body);
+    expect(parsed.title).toBe('Real submitted incident');
+    expect(parsed.sev).toBe('low');
+  });
 });
 
 describe('validateIncidentFields', () => {
