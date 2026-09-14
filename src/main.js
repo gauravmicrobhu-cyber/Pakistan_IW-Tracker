@@ -143,27 +143,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// ── CLOUDFLARE TURNSTILE (Log Incident form anti-spam challenge) ── rendered explicitly rather
-// than via a static `data-sitekey` HTML attribute, since the site key lives in src/config.js (a
-// JS module), not in index.html. The api.js script tag loads async/defer, so this polls briefly
-// for `window.turnstile` to exist rather than racing a load-order assumption.
-function renderTurnstileWidget(attemptsLeft = 50) {
-  const host = document.getElementById('turnstileWidget');
-  if (!host) return;
-  if (typeof turnstile !== 'undefined') {
-    if (window._turnstileWidgetId == null) {
-      window._turnstileWidgetId = turnstile.render(host, { sitekey: TURNSTILE_SITE_KEY, theme: 'dark' });
-    }
-    return;
-  }
-  if (attemptsLeft <= 0) {
-    host.textContent = 'Verification widget failed to load — check your connection and refresh.';
-    return;
-  }
-  setTimeout(() => renderTurnstileWidget(attemptsLeft - 1), 200);
-}
-renderTurnstileWidget();
-
 // ── INIT ──
 enrichAll();
 initTimelineScrubber();
@@ -217,3 +196,40 @@ window.switchLivePlatform = switchLivePlatform;
 window.toggleFlag = toggleFlag;
 window.toggleNoteBox = toggleNoteBox;
 window.togglePostureFactor = togglePostureFactor;
+
+// ── CLOUDFLARE TURNSTILE (Log Incident form anti-spam challenge) ── rendered explicitly rather
+// than via a static `data-sitekey` HTML attribute, since the site key lives in src/config.js (a
+// JS module), not in index.html. The api.js script tag loads async/defer, so this polls briefly
+// for `window.turnstile` to exist rather than racing a load-order assumption.
+//
+// Deliberately the LAST thing this module does, and wrapped in try/catch: it depends on a
+// third-party script and a config value (TURNSTILE_SITE_KEY) that's a placeholder until the
+// Cloudflare setup in worker/README.md is done, so `turnstile.render()` can throw (an invalid
+// site key isn't just ignored — Turnstile's client validates it). Everything above this point
+// — rendering the feed, wiring every window.* handler the rest of the page's onclick attributes
+// depend on — must succeed regardless of whether this widget ever loads.
+function renderTurnstileWidget(attemptsLeft = 50) {
+  const host = document.getElementById('turnstileWidget');
+  if (!host) return;
+  if (typeof turnstile !== 'undefined') {
+    if (window._turnstileWidgetId == null) {
+      try {
+        window._turnstileWidgetId = turnstile.render(host, { sitekey: TURNSTILE_SITE_KEY, theme: 'dark' });
+      } catch (e) {
+        console.error('Turnstile widget failed to render:', e);
+        host.textContent = 'Verification widget is not configured yet — incident submission is temporarily unavailable.';
+      }
+    }
+    return;
+  }
+  if (attemptsLeft <= 0) {
+    host.textContent = 'Verification widget failed to load — check your connection and refresh.';
+    return;
+  }
+  setTimeout(() => renderTurnstileWidget(attemptsLeft - 1), 200);
+}
+try {
+  renderTurnstileWidget();
+} catch (e) {
+  console.error('Turnstile widget setup failed:', e);
+}
