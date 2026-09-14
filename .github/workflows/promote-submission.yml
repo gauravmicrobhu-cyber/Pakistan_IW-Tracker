@@ -1,0 +1,112 @@
+name: Promote or decline a submission
+
+# Fires whenever any label is added to any Issue. The job condition below narrows this down to
+# only Issues that (a) still carry `submission:pending` (so labeling an unrelated issue "approved"
+# for some other reason can't misfire this) and (b) just received exactly `approved` or `declined`.
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: promote-submission-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  handle-label:
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.issue.labels.*.name, 'submission:pending') &&
+      (github.event.label.name == 'approved' || github.event.label.name == 'declined')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ── APPROVED ──────────────────────────────────────────────────────────────────────────
+      - name: Parse, validate & append the submission to communityIncidents.json
+        if: github.event.label.name == 'approved'
+        id: promote
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: node scripts/promote-submission.mjs
+
+      - name: On parse/validation failure — comment and close for manual entry
+        if: github.event.label.name == 'approved' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                "⚠️ This submission was labeled `approved`, but its embedded structured data couldn't be",
+                "automatically parsed or validated, so it was **not** added to the registry automatically.",
+                "",
+                "A maintainer will need to add this one manually to `src/data/communityIncidents.json`, or",
+                "fix the `SUBMISSION_JSON` block in this issue's body and re-apply the `approved` label to",
+                "retry."
+              ].join('\n')
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'not_planned'
+            });
+
+      - name: Commit and push the promoted incident
+        if: github.event.label.name == 'approved' && success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/communityIncidents.json
+          git commit -m "Promote submission #${{ github.event.issue.number }} to community incidents"
+          git push
+
+      - name: On success — comment, close, and relabel
+        if: github.event.label.name == 'approved' && success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const incidentId = '${{ steps.promote.outputs.incident_id }}';
+            const owner = context.repo.owner, repo = context.repo.repo;
+            const deepLink = incidentId
+              ? `https://${owner}.github.io/${repo}/?incident=${incidentId}`
+              : null;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: context.issue.number,
+              body: [
+                "✅ Approved and added to the public registry (`src/data/communityIncidents.json`).",
+                "It will appear on the live site shortly, once the deploy this push triggers finishes.",
+                deepLink ? `\nDirect link once deployed: ${deepLink}` : ''
+              ].join('\n')
+            });
+            await github.rest.issues.removeLabel({ owner, repo, issue_number: context.issue.number, name: 'submission:pending' }).catch(() => {});
+            await github.rest.issues.addLabels({ owner, repo, issue_number: context.issue.number, labels: ['promoted'] });
+            await github.rest.issues.update({ owner, repo, issue_number: context.issue.number, state: 'closed', state_reason: 'completed' });
+
+      # ── DECLINED ──────────────────────────────────────────────────────────────────────────
+      - name: On decline — comment, close, and relabel
+        if: github.event.label.name == 'declined'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner, repo = context.repo.repo;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: context.issue.number,
+              body: "This submission was reviewed and declined — it will not be added to the public registry. Thanks for the submission."
+            });
+            await github.rest.issues.removeLabel({ owner, repo, issue_number: context.issue.number, name: 'submission:pending' }).catch(() => {});
+            await github.rest.issues.addLabels({ owner, repo, issue_number: context.issue.number, labels: ['declined-final'] });
+            await github.rest.issues.update({ owner, repo, issue_number: context.issue.number, state: 'closed', state_reason: 'not_planned' });

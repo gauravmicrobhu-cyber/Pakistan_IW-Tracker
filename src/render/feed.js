@@ -1,11 +1,12 @@
 import { incidents, annotations, getAnnotation, saveAnnotations, saveIncidents, setIncidents, setMapRendered, setNetworkRendered, currentFilter, currentCampaignFilter, searchTerm, timelineActiveRange } from '../state.js';
 import { platColors, tierMeta, confidenceMeta, campaignDefs, tagClass, typeLabels } from '../data/lookups.js';
 import { formatDate } from '../logic/dates.js';
-import { enrichIncident } from '../logic/enrichIncident.js';
+import { escapeHtml } from '../logic/escapeHtml.js';
 import { updateBackupBanner } from './backup.js';
 import { showToast } from './misc.js';
 import { updateStats } from './analytics.js';
 import { callClaude } from '../ai.js';
+import { SUBMISSION_ENDPOINT } from '../config.js';
 
 export function toggleFlag(id, flagType) {
   const a = annotations[id] || {};
@@ -93,6 +94,16 @@ export function renderFeed() {
     const camp = campaignDefs[inc._campaign] || campaignDefs.ongoing;
     const ann = getAnnotation(inc.id);
 
+    const safeTitle = escapeHtml(inc.title);
+    const safeDetail = escapeHtml(inc.detail);
+    const safePlatform = escapeHtml(inc.platform);
+    const safeReach = escapeHtml(inc.reach);
+    const safeSource = escapeHtml(inc.source);
+    const safeActor = escapeHtml(inc._actor || 'Unattributed');
+    // JS-string-literal-safe (for the single-quoted onclick arg), then HTML-attribute-safe on top —
+    // entity-decoding happens before the browser parses the onclick attribute as JS, so this nests correctly.
+    const actorJsArg = escapeHtml((inc._actor || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+
     cards += `<div class="incident-card sev-${inc.sev} ${show?'visible':''}" data-id="${inc.id}" id="incident-${inc.id}">
       <div class="card-top">
         <div class="card-meta">
@@ -111,19 +122,19 @@ export function renderFeed() {
           <button onclick="deleteIncident(${inc.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;" title="Delete">×</button>
         </div>
       </div>
-      <div class="card-title">${inc.title}</div>
-      <div class="card-body">${inc.detail}</div>
+      <div class="card-title">${safeTitle}</div>
+      <div class="card-body">${safeDetail}</div>
       <div class="card-footer">
         <span class="card-date">${formatDate(inc.date)}</span>
         <div class="card-platform">
           <div class="platform-dot" style="background:${platColor}"></div>
-          <span class="platform-label">${inc.platform||'—'}</span>
+          <span class="platform-label">${safePlatform||'—'}</span>
         </div>
-        ${inc.reach ? `<span class="card-reach">Reach: <span>${inc.reach}</span></span>` : ''}
+        ${inc.reach ? `<span class="card-reach">Reach: <span>${safeReach}</span></span>` : ''}
       </div>
       <div style="margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.08em;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        ${inc.source ? `<span>SOURCE: ${inc.source}</span>` : ''}
-        <span>ACTOR: <span class="actor-link" onclick="openActorDossier('${(inc._actor||'').replace(/'/g,"\\'")}')">${inc._actor||'Unattributed'}</span></span>
+        ${inc.source ? `<span>SOURCE: ${safeSource}</span>` : ''}
+        <span>ACTOR: <span class="actor-link" onclick="openActorDossier('${actorJsArg}')">${safeActor}</span></span>
       </div>
       <div class="note-box" id="notebox-${inc.id}" style="display:${ann.note ? 'block' : 'none'};">
         <textarea class="note-textarea" id="notetext-${inc.id}" placeholder="Personal note (saved locally in your browser only)...">${ann.note||''}</textarea>
@@ -147,15 +158,27 @@ export function renderFeed() {
 }
 
 
-export function addIncident() {
+// ── PUBLIC SUBMISSION PIPELINE ── the Log Incident form no longer writes straight into the
+// local incidents array / localStorage (that only ever reached the submitter's own browser).
+// It now POSTs to a Cloudflare Worker (SUBMISSION_ENDPOINT, see src/config.js), which verifies
+// a Turnstile challenge + honeypot + IP rate-limit, then opens a GitHub Issue labeled
+// `submission:pending`. Nothing is added to the local feed here — it isn't live until a
+// maintainer approves the Issue on GitHub, which promotes it into src/data/communityIncidents.json
+// via .github/workflows/promote-submission.yml.
+
+export async function addIncident() {
   const title  = document.getElementById('f-title').value.trim();
   const detail = document.getElementById('f-detail').value.trim();
   if (!title) { alert('Please enter an incident title.'); return; }
 
+  // Honeypot: real users never fill this hidden field in; a non-empty value is a strong bot
+  // signal. Still sent through to the Worker (which silently no-ops on it) rather than
+  // special-cased here, per the Worker's own honeypot handling.
+  const honeypot = document.getElementById('f-website')?.value || '';
+
   const checkedTargets = Array.from(document.querySelectorAll('#f-targets input[type=checkbox]:checked')).map(c => c.value);
 
-  const inc = {
-    id: Date.now(),
+  const fields = {
     title,
     detail,
     type:     document.getElementById('f-type').value,
@@ -165,25 +188,54 @@ export function addIncident() {
     date:     document.getElementById('f-date').value || new Date().toISOString().slice(0,10),
     source:   document.getElementById('f-source').value.trim(),
     actor:    document.getElementById('f-actor').value.trim(),
-    targets:  checkedTargets
+    targets:  checkedTargets,
+    website:  honeypot
   };
-  enrichIncident(inc);
 
-  incidents.unshift(inc);
-  saveIncidents();
-  renderFeed();
-  if (typeof renderMap === 'function') { setMapRendered(false); }
-  if (typeof renderNetwork === 'function') { setNetworkRendered(false); }
+  let turnstileToken = '';
+  try {
+    if (typeof turnstile !== 'undefined' && window._turnstileWidgetId != null) {
+      turnstileToken = turnstile.getResponse(window._turnstileWidgetId) || '';
+    }
+  } catch(e) { /* Turnstile not loaded/ready — handled by the empty-token check below */ }
 
-  // Reset form
-  ['f-title','f-detail','f-platform','f-reach','f-source','f-actor'].forEach(id => document.getElementById(id).value = '');
-  document.querySelectorAll('#f-targets input[type=checkbox]').forEach(c => c.checked = false);
+  if (!turnstileToken) {
+    showToast('Please complete the verification challenge before submitting.', 'var(--accent)');
+    return;
+  }
+  fields['cf-turnstile-response'] = turnstileToken;
 
-  // Toast
-  const toast = document.getElementById('toast');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
-  updateBackupBanner();
+  const submitBtn = document.querySelector('#tab-log .btn-submit');
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const res = await fetch(SUBMISSION_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields)
+    });
+
+    if (!res.ok) {
+      if (res.status === 429) throw new Error('Too many submissions from this network — please try again in an hour.');
+      if (res.status === 403) throw new Error('Verification challenge failed — please retry.');
+      if (res.status === 400) throw new Error('Please fill in all required fields and try again.');
+      throw new Error('Submission failed — please try again later.');
+    }
+
+    // Reset form — nothing is added to the local feed; it only appears once approved.
+    ['f-title','f-detail','f-platform','f-reach','f-source','f-actor'].forEach(id => { document.getElementById(id).value = ''; });
+    document.querySelectorAll('#f-targets input[type=checkbox]').forEach(c => c.checked = false);
+    try {
+      if (typeof turnstile !== 'undefined' && window._turnstileWidgetId != null) turnstile.reset(window._turnstileWidgetId);
+    } catch(e) {}
+
+    showToast('Submitted for review — visible once approved');
+  } catch(e) {
+    showToast(e.message || 'Submission failed — check your connection and try again.', 'var(--accent)');
+    console.error(e);
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 // ── DELETE ──

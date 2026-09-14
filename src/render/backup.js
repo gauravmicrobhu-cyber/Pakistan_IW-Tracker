@@ -3,7 +3,7 @@ import { enrichIncident } from '../logic/enrichIncident.js';
 import { renderFeed } from './feed.js';
 import { showToast } from './misc.js';
 
-export function getUserIncidents() { return incidents.filter(i => !i.seed); }
+export function getUserIncidents() { return incidents.filter(i => !i.seed && !i.community); }
 
 export function hasLocalUserData() { return getUserIncidents().length > 0 || Object.keys(annotations).length > 0; }
 

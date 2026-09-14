@@ -19,7 +19,7 @@ import { renderFeed, addIncident, analyseCard, citeIncident, copyDeepLink, delet
 import { renderMap, leafletMapInstance, jumpToIncident } from './render/map.js';
 import { renderNetwork, resetNetworkSelection } from './render/network.js';
 import { renderConnections } from './render/connections.js';
-import { renderPending, promotePending, dismissPending } from './render/pending.js';
+import { renderPending } from './render/pending.js';
 import {
   initTimelineScrubber, onTimelineChange, resetTimeline, filterFeedByDate,
 } from './render/timeline.js';
@@ -44,6 +44,8 @@ import { loadYtChannel, runYoutubeSearch } from './live/youtube.js';
 import { loadFbPage } from './live/facebook.js';
 
 import { analyseForm, applyAiToForm, generateBrief } from './ai.js';
+
+import { TURNSTILE_SITE_KEY } from './config.js';
 
 // ── COMMAND PALETTE INPUT + GLOBAL KEYBOARD SHORTCUTS ──
 
@@ -141,6 +143,27 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ── CLOUDFLARE TURNSTILE (Log Incident form anti-spam challenge) ── rendered explicitly rather
+// than via a static `data-sitekey` HTML attribute, since the site key lives in src/config.js (a
+// JS module), not in index.html. The api.js script tag loads async/defer, so this polls briefly
+// for `window.turnstile` to exist rather than racing a load-order assumption.
+function renderTurnstileWidget(attemptsLeft = 50) {
+  const host = document.getElementById('turnstileWidget');
+  if (!host) return;
+  if (typeof turnstile !== 'undefined') {
+    if (window._turnstileWidgetId == null) {
+      window._turnstileWidgetId = turnstile.render(host, { sitekey: TURNSTILE_SITE_KEY, theme: 'dark' });
+    }
+    return;
+  }
+  if (attemptsLeft <= 0) {
+    host.textContent = 'Verification widget failed to load — check your connection and refresh.';
+    return;
+  }
+  setTimeout(() => renderTurnstileWidget(attemptsLeft - 1), 200);
+}
+renderTurnstileWidget();
+
 // ── INIT ──
 enrichAll();
 initTimelineScrubber();
@@ -170,7 +193,6 @@ window.closeSystemStatus = closeSystemStatus;
 window.copyDeepLink = copyDeepLink;
 window.copyFilteredViewLink = copyFilteredViewLink;
 window.deleteIncident = deleteIncident;
-window.dismissPending = dismissPending;
 window.exportData = exportData;
 window.filterByVector = filterByVector;
 window.filterFeedByDate = filterFeedByDate;
@@ -184,7 +206,6 @@ window.openActorDossier = openActorDossier;
 window.openChangelog = openChangelog;
 window.openMethodology = openMethodology;
 window.openSystemStatus = openSystemStatus;
-window.promotePending = promotePending;
 window.resetNetworkSelection = resetNetworkSelection;
 window.resetTimeline = resetTimeline;
 window.restoreUserData = restoreUserData;

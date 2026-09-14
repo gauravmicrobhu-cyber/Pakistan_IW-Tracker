@@ -554,7 +554,10 @@
     </div>
     <div id="backupStatus" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:1rem;"></div>
     <div class="add-section">
-      <div class="add-title">⊕ Log New Incident</div>
+      <div class="add-title">⊕ Submit an Incident</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin:-8px 0 14px;line-height:1.6;">
+        Submissions go to moderation, not straight to the public feed — see the Pending Review tab. A maintainer reviews each one on GitHub before it becomes part of the public registry.
+      </div>
       <div class="form-grid">
         <div class="form-field form-full">
           <label>Incident Title</label>
@@ -616,8 +619,17 @@
           </div>
         </div>
       </div>
+      <!-- Honeypot: hidden from real users via CSS + kept off the tab order; a filled-in value is
+           a bot signal the Worker checks server-side (see worker/src/index.js). Never shown, never
+           required — do not remove style/tabindex/autocomplete, they're what keeps it invisible
+           to humans while still reachable by naive bots that fill in every field. -->
+      <input type="text" id="f-website" name="website" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" tabindex="-1" autocomplete="off"/>
+      <div style="margin:14px 0;">
+        <label style="display:block;font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Verification</label>
+        <div id="turnstileWidget"></div>
+      </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <button class="btn-submit" onclick="addIncident()">LOG INCIDENT →</button>
+        <button class="btn-submit" onclick="addIncident()">SUBMIT FOR REVIEW →</button>
         <button class="btn-ai" id="btnAnalyseForm" onclick="analyseForm()">
           <span>⬡ AI ANALYSE</span>
           <span class="ai-spinner" id="formSpinner"></span>
@@ -670,20 +682,26 @@
   <div style="padding:1.5rem 2rem;max-width:1000px;margin:0 auto;">
     <div class="pending-banner">
       <div class="pending-banner-text">
-        <strong>⏳ Candidates from a sourced research pull, not yet part of the registry.</strong>
-        Each item below cleared an initial source check but hasn't been promoted. Review the sourcing, then Promote (adds it to the main Incident Feed, same as a manually logged entry) or Dismiss (discards it — pulls won't re-surface a dismissed item). Ask Claude to "run a pull" any time to check for new incidents and add qualifying candidates here.
+        <strong>⏳ Public submissions awaiting moderation — fetched live from GitHub, read-only here.</strong>
+        Anyone can submit an incident via the Log Incident tab; each submission opens a GitHub Issue labeled <code>submission:pending</code> in this repo. The repo maintainer reviews it on GitHub and labels it <code>approved</code> or <code>declined</code> — approval automatically appends it to the public registry. This tab has no Promote/Dismiss controls anymore; moderation happens on GitHub, not in the browser. Note: this content is unmoderated public text rendered read-only for review — treat it as such.
       </div>
     </div>
-    <div id="pullLogSummary" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin:-0.5rem 0 1.25rem;line-height:1.6;"></div>
     <div class="section-hdr">
       <div class="section-hdr-text">Pending Review <span id="pendingCount" class="count-badge">0</span></div>
       <div class="section-hdr-line"></div>
     </div>
     <div id="pendingFeed"></div>
-    <div class="empty-state visible" id="pendingEmptyState">
+    <div class="empty-state" id="pendingEmptyState">
       <div class="empty-icon">⏳</div>
-      <div class="empty-text">NO PENDING CANDIDATES — ASK CLAUDE TO RUN A PULL</div>
+      <div class="empty-text">NO PENDING SUBMISSIONS RIGHT NOW</div>
     </div>
+
+    <div class="section-hdr" style="margin-top:2.5rem;">
+      <div class="section-hdr-text">Past Research Pulls <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);font-weight:400;">(historical record, pre-dates the public submission pipeline)</span></div>
+      <div class="section-hdr-line"></div>
+    </div>
+    <div id="pullLogSummary" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin:-0.5rem 0 1.25rem;line-height:1.6;"></div>
+    <div id="pastPullsFeed"></div>
   </div>
 </div><!-- /tab-pending -->
 
@@ -747,6 +765,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<!-- Cloudflare Turnstile: rendered explicitly (not via a static data-sitekey attribute) from
+     src/main.js, since the site key lives in src/config.js, a JS module, not the HTML. -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

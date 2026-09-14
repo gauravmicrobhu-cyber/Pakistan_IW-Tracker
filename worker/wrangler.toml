@@ -1,0 +1,22 @@
+name = "prism-iw-tracker-submit"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# The deployed GitHub Pages origin this Worker accepts requests from. Reflected (not merely
+# checked) on Access-Control-Allow-Origin — see worker/src/lib.js buildCorsHeaders().
+ALLOWED_ORIGIN = "https://gauravmicrobhu-cyber.github.io"
+GITHUB_OWNER = "gauravmicrobhu-cyber"
+GITHUB_REPO = "Pakistan_IW-Tracker"
+
+# Secrets (GITHUB_TOKEN, TURNSTILE_SECRET_KEY) are NOT set here — never put secrets in
+# wrangler.toml, it's committed to the repo. Set them with:
+#   wrangler secret put GITHUB_TOKEN
+#   wrangler secret put TURNSTILE_SECRET_KEY
+# See worker/README.md for the full setup runbook.
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+# Placeholder — run `wrangler kv namespace create RATE_LIMIT_KV` and paste the "id" it prints
+# here before deploying. Deploy will fail with this placeholder still in place.
+id = "REPLACE_AFTER_RUNNING_wrangler_kv_namespace_create"
