@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "build": "echo 'No build step needed — this Worker ships plain ES modules, wrangler deploy handles bundling.'",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },
