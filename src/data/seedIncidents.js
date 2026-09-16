@@ -460,4 +460,13 @@ export const seedIncidents = [
       date: "2019-08-20", source: "CENJOWS / CLAWS case study / DisinfoLab", actor: "SAUSMF",
       targets: ["kashmir","goi"]
     },
+    {
+      id: Date.now() - 20000,
+      title: "SideCopy phishing campaign targets DRDO and Ministry of Defence with weaponized procurement lures",
+      detail: "SideCopy ran a spear-phishing campaign against India's Defence Research and Development Organisation (DRDO) and Ministry of Defence, using ZIP archives containing malicious Windows shortcut (.lnk) files disguised as defense-related PDFs and documents — including one lure built around a fake PowerPoint referencing India's K-4 missile program. The attack chain delivered Action RAT and the open-source AllaKore RAT to harvest sensitive information from infected systems. Documented by the Council on Foreign Relations' Cyber Operations Tracker; a distinct, earlier campaign from the fake-domain spoofing activity SideCopy ran in May 2025.",
+      type: "cyber", sev: "high",
+      platform: "Email (spear-phishing)", reach: "Indian defense research and procurement personnel, scope undisclosed",
+      date: "2023-03-01", source: "Council on Foreign Relations Cyber Operations Tracker", actor: "SideCopy",
+      site: "mod", targets: ["army"]
+    },
   ].map(i => ({ ...i, seed: true }));

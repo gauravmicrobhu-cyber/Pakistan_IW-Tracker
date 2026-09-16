@@ -6,7 +6,7 @@ export const STORAGE_KEY = 'prism_iw_incidents';
 
 export const VERSION_KEY  = 'prism_iw_seed_version';
 
-export const SEED_VERSION = 18; // bump this whenever the curated seed list below changes
+export const SEED_VERSION = 19; // bump this whenever the curated seed list below changes
 
 // ── COMMUNITY INCIDENTS ── approved via the public GitOps submission pipeline (Log Incident
 // form → Cloudflare Worker → GitHub Issue → human `approved` label → Actions workflow appends
