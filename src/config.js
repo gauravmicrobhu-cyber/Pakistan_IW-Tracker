@@ -7,8 +7,8 @@
 // SUBMISSION_ENDPOINT is the Cloudflare Worker URL the Log Incident form POSTs to.
 // TURNSTILE_SITE_KEY is the PUBLIC Turnstile site key (safe to ship to the browser — this is
 // NOT the secret key; the secret key lives only as a Worker secret, see worker/README.md).
-export const SUBMISSION_ENDPOINT = 'REPLACE_WITH_YOUR_CLOUDFLARE_WORKER_URL'; // e.g. https://prism-submit.<subdomain>.workers.dev
-export const TURNSTILE_SITE_KEY = 'REPLACE_WITH_YOUR_TURNSTILE_SITE_KEY';
+export const SUBMISSION_ENDPOINT = 'https://pakistan-iw-tracker.gaurav-microbhu.workers.dev';
+export const TURNSTILE_SITE_KEY = '0x4AAAAAAE4RARreZWL1pXoB';
 
 export const GITHUB_OWNER = 'gauravmicrobhu-cyber';
 export const GITHUB_REPO = 'Pakistan_IW-Tracker';
