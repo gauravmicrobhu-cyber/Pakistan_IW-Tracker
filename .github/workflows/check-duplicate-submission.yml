@@ -1,0 +1,50 @@
+name: Check submission for duplicates
+
+# Fires as soon as the submission Worker opens a new Issue (it applies the `submission:pending`
+# label in the same API call that creates the Issue, so it's already present on the `opened`
+# event). The `if:` guard means this never fires for an issue someone opens by hand for an
+# unrelated reason.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-duplicate:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'submission:pending')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch other open pending submissions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --repo ${{ github.repository }} --label submission:pending --state open \
+            --json number,body,url --limit 100 > other_issues.json
+
+      - name: Compare against existing incidents and other pending submissions
+        env:
+          NEW_ISSUE_BODY: ${{ github.event.issue.body }}
+          NEW_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          OTHER_ISSUES_FILE: other_issues.json
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: node scripts/check-duplicate-submission.mjs
+
+      - name: Post duplicate-hint comment, if any matches were found
+        if: hashFiles('duplicate-comment.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} \
+            --body-file duplicate-comment.md
