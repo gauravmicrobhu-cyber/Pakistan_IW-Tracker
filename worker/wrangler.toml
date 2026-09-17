@@ -1,4 +1,8 @@
-name = "prism-iw-tracker-submit"
+# Must match the Worker name src/config.js's SUBMISSION_ENDPOINT actually points to — this
+# `name` determines the deployed URL (https://<name>.<subdomain>.workers.dev), and any secrets/KV
+# bindings set via `wrangler secret put` or the dashboard apply to the specific Worker resource
+# this name resolves to, not to whatever the frontend happens to be calling.
+name = "pakistan-iw-tracker"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
