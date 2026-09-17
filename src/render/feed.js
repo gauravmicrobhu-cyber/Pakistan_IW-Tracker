@@ -79,7 +79,8 @@ export function renderFeed() {
     const matchSearch = !searchTerm ||
       inc.title.toLowerCase().includes(searchTerm) ||
       inc.detail.toLowerCase().includes(searchTerm) ||
-      (inc.source||'').toLowerCase().includes(searchTerm);
+      (inc.source||'').toLowerCase().includes(searchTerm) ||
+      (inc.platform||'').toLowerCase().includes(searchTerm);
     const matchTimeline = !timelineActiveRange || (() => {
       const t = new Date(inc.date + 'T00:00:00').getTime();
       return t >= timelineActiveRange[0] && t <= timelineActiveRange[1];

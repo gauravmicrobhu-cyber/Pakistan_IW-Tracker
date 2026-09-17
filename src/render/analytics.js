@@ -7,7 +7,7 @@ import { syncFilterHighlights, filterByVector } from './filters.js';
 import { renderMap } from './map.js';
 import { renderNetwork } from './network.js';
 import { renderConnections } from './connections.js';
-import { renderLeaderboards } from './leaderboards.js';
+import { renderLeaderboards, searchFromLeaderboard } from './leaderboards.js';
 import { renderLiveIncidentTable, renderLiveIncidentMap } from './liveIncidents.js';
 
 export function renderMitreTTPSection(actorName) {
@@ -208,6 +208,8 @@ export function updateStats() {
 
   updateVectorChart(vectorCounts);
   updateTimelineChart();
+  updateVectorTimelineChart();
+  updatePlatformTimelineChart();
   renderLeaderboards();
   renderLiveIncidentTable();
 
@@ -301,6 +303,128 @@ export function updateTimelineChart() {
         legend: { display: false },
         tooltip: { backgroundColor: '#161c30', borderColor: '#2a3350', borderWidth: 1, titleFont:{family:'IBM Plex Mono'}, bodyFont:{family:'IBM Plex Mono'} }
       }
+    }
+  });
+}
+
+// ── MULTI-SERIES TIME-SERIES CHARTS ── same year-month bucketing as updateTimelineChart()
+// above, but split into one line per category instead of a single aggregate total — surfaces
+// which vector/platform is driving a given month's volume, not just that volume moved.
+
+function monthLabel(m) {
+  const [y, mo] = m.split('-');
+  return new Date(y, mo - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+const LINE_CHART_BASE_OPTIONS = {
+  responsive: true, maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  scales: {
+    x: { ticks: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 8 } }, grid: { display: false } },
+    y: { ticks: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 8 }, precision: 0 }, grid: { color: '#2a3350' } }
+  },
+  plugins: {
+    legend: { position: 'bottom', labels: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 8, padding: 8 } },
+    tooltip: { backgroundColor: '#161c30', borderColor: '#2a3350', borderWidth: 1, titleFont: { family: 'IBM Plex Mono' }, bodyFont: { family: 'IBM Plex Mono' }, mode: 'index', intersect: false }
+  }
+};
+
+function lineDataset(label, data, color) {
+  return { label, data, borderColor: color, backgroundColor: color + '33', tension: 0.3, pointRadius: 2, pointHoverRadius: 4, borderWidth: 1.75, fill: false };
+}
+
+export let vectorTimelineChartInstance = null;
+
+const VECTOR_TIMELINE_TYPES = ['social', 'media', 'psyops', 'cyber', 'diplo', 'proxy'];
+
+export function updateVectorTimelineChart() {
+  const canvas = document.getElementById('vectorTimelineChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const counts = {};
+  VECTOR_TIMELINE_TYPES.forEach(t => { counts[t] = {}; });
+  const monthsSet = new Set();
+  incidents.forEach(i => {
+    if (!i.date) return;
+    const m = i.date.slice(0, 7);
+    monthsSet.add(m);
+    if (counts[i.type]) counts[i.type][m] = (counts[i.type][m] || 0) + 1;
+  });
+  const months = [...monthsSet].sort();
+  const labels = months.map(monthLabel);
+  const datasets = VECTOR_TIMELINE_TYPES.map(t =>
+    lineDataset(vectorChartLabels[t], months.map(m => counts[t][m] || 0), vectorChartColors[t])
+  );
+
+  if (vectorTimelineChartInstance) {
+    vectorTimelineChartInstance.data.labels = labels;
+    vectorTimelineChartInstance.data.datasets = datasets;
+    vectorTimelineChartInstance.update();
+    return;
+  }
+  vectorTimelineChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...LINE_CHART_BASE_OPTIONS,
+      // Independent of the tooltip's index-mode interaction above (which deliberately activates
+      // every series at the hovered month) — click hit-testing needs 'nearest'+intersect:true so
+      // it only fires for the specific line/point actually under the cursor.
+      onClick: (evt, _elements, chart) => {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (hit.length) filterByVector(VECTOR_TIMELINE_TYPES[hit[0].datasetIndex]);
+      },
+      onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
+    }
+  });
+}
+
+
+export let platformTimelineChartInstance = null;
+
+const PLATFORM_TIMELINE_DEFS = [
+  { key: 'x',  label: 'X / Twitter',    color: '#2f9bff', term: 'twitter',  test: p => p.includes('twitter') || p.includes('/x') || p.startsWith('x') },
+  { key: 'w',  label: 'WhatsApp',       color: '#00ff9d', term: 'whatsapp', test: p => p.includes('whatsapp') },
+  { key: 'yt', label: 'YouTube',        color: '#ff2d6a', term: 'youtube',  test: p => p.includes('youtube') },
+  { key: 'tt', label: 'TikTok / Other', color: '#c724ff', term: 'tiktok',   test: p => p.includes('tiktok') }
+];
+
+export function updatePlatformTimelineChart() {
+  const canvas = document.getElementById('platformTimelineChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const counts = {};
+  PLATFORM_TIMELINE_DEFS.forEach(p => { counts[p.key] = {}; });
+  const monthsSet = new Set();
+  incidents.forEach(i => {
+    if (!i.date) return;
+    const m = i.date.slice(0, 7);
+    monthsSet.add(m);
+    const p = (i.platform || '').toLowerCase();
+    PLATFORM_TIMELINE_DEFS.forEach(def => { if (def.test(p)) counts[def.key][m] = (counts[def.key][m] || 0) + 1; });
+  });
+  const months = [...monthsSet].sort();
+  const labels = months.map(monthLabel);
+  const datasets = PLATFORM_TIMELINE_DEFS.map(def =>
+    lineDataset(def.label, months.map(m => counts[def.key][m] || 0), def.color)
+  );
+
+  if (platformTimelineChartInstance) {
+    platformTimelineChartInstance.data.labels = labels;
+    platformTimelineChartInstance.data.datasets = datasets;
+    platformTimelineChartInstance.update();
+    return;
+  }
+  platformTimelineChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...LINE_CHART_BASE_OPTIONS,
+      onClick: (evt, _elements, chart) => {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (hit.length) searchFromLeaderboard(PLATFORM_TIMELINE_DEFS[hit[0].datasetIndex].term);
+      },
+      onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
     }
   });
 }
