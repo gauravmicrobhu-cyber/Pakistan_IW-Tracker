@@ -1,4 +1,4 @@
-import { incidents, mapRendered, networkRendered, connectionsRendered } from '../state.js';
+import { incidents, mapRendered, networkRendered, connectionsRendered, liveIncidentMapRendered } from '../state.js';
 import { mitreAttckData, campaignDefs, vectorChartColors, vectorChartLabels } from '../data/lookups.js';
 import { parseReachValue, formatCompactNumber } from '../logic/reach.js';
 import { computeNationalPosture, statusForPosture } from '../logic/posture.js';
@@ -7,6 +7,8 @@ import { syncFilterHighlights, filterByVector } from './filters.js';
 import { renderMap } from './map.js';
 import { renderNetwork } from './network.js';
 import { renderConnections } from './connections.js';
+import { renderLeaderboards } from './leaderboards.js';
+import { renderLiveIncidentTable, renderLiveIncidentMap } from './liveIncidents.js';
 
 export function renderMitreTTPSection(actorName) {
   const data = mitreAttckData[actorName];
@@ -206,10 +208,13 @@ export function updateStats() {
 
   updateVectorChart(vectorCounts);
   updateTimelineChart();
+  renderLeaderboards();
+  renderLiveIncidentTable();
 
   if (mapRendered) renderMap();
   if (networkRendered) renderNetwork();
   if (connectionsRendered) renderConnections();
+  if (liveIncidentMapRendered) renderLiveIncidentMap();
 }
 
 // ── INTERACTIVE CHARTS ──

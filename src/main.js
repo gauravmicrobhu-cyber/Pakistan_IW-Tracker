@@ -12,6 +12,7 @@ import {
   liveRendered, setLiveRendered,
   newsMonitorRendered, setNewsMonitorRendered,
   connectionsRendered, setConnectionsRendered,
+  liveIncidentMapRendered, setLiveIncidentMapRendered,
   setCurrentFilter, setCurrentCampaignFilter, setSearchTerm,
 } from './state.js';
 
@@ -37,6 +38,8 @@ import { backupUserData, restoreUserData, updateBackupBanner } from './render/ba
 import { exportData } from './render/export.js';
 import { updateClock } from './render/misc.js';
 import { togglePostureFactor } from './render/analytics.js';
+import { focusRegionFromLeaderboard, searchFromLeaderboard } from './render/leaderboards.js';
+import { renderLiveIncidentMap, liveMiniMapInstance, sortLiveIncidents } from './render/liveIncidents.js';
 
 import { initLiveSignals, loadHashtag, switchLivePlatform } from './live/twitter.js';
 import { runGdeltSearch } from './live/gdelt.js';
@@ -138,6 +141,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'live' && !liveRendered) { initLiveSignals(); setLiveRendered(true); }
     if (btn.dataset.tab === 'newsmonitor' && !newsMonitorRendered) { runGdeltSearch(); setNewsMonitorRendered(true); }
     if (btn.dataset.tab === 'connections' && !connectionsRendered) { renderConnections(); setConnectionsRendered(true); }
+    if (btn.dataset.tab === 'analytics') {
+      if (!liveIncidentMapRendered) { renderLiveIncidentMap(); setLiveIncidentMapRendered(true); }
+      else setTimeout(() => { if (liveMiniMapInstance) liveMiniMapInstance.invalidateSize(); }, 50);
+    }
     if (btn.dataset.tab === 'pending') { renderPending(); }
     syncURLState();
   });
@@ -175,6 +182,7 @@ window.deleteIncident = deleteIncident;
 window.exportData = exportData;
 window.filterByVector = filterByVector;
 window.filterFeedByDate = filterFeedByDate;
+window.focusRegionFromLeaderboard = focusRegionFromLeaderboard;
 window.generateBrief = generateBrief;
 window.jumpToIncident = jumpToIncident;
 window.loadFbPage = loadFbPage;
@@ -191,7 +199,9 @@ window.restoreUserData = restoreUserData;
 window.runGdeltSearch = runGdeltSearch;
 window.runYoutubeSearch = runYoutubeSearch;
 window.saveNote = saveNote;
+window.searchFromLeaderboard = searchFromLeaderboard;
 window.setCampaignFilter = setCampaignFilter;
+window.sortLiveIncidents = sortLiveIncidents;
 window.switchLivePlatform = switchLivePlatform;
 window.toggleFlag = toggleFlag;
 window.toggleNoteBox = toggleNoteBox;

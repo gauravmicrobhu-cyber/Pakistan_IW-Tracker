@@ -315,6 +315,31 @@
 <div class="tab-panel" id="tab-analytics">
   <div style="max-width:1400px;margin:0 auto;padding:1.5rem;">
     <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title" style="display:flex;align-items:center;gap:8px;">
+        <span class="live-dot" style="width:6px;height:6px;flex-shrink:0;"></span>
+        <span>Recent Incident Activity</span>
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· the 15 most recently dated incidents in this dataset, not a real-time external feed · click a row or map pin to open it · click a column header to sort</span>
+      </div>
+      <div class="live-panel-grid">
+        <div class="live-table-wrap">
+          <table class="live-table">
+            <thead>
+              <tr>
+                <th data-sort="date" onclick="sortLiveIncidents('date')">Date <span class="live-sort-arrow">▼</span></th>
+                <th>Actor</th>
+                <th>Vector</th>
+                <th>Platform</th>
+                <th data-sort="sev" onclick="sortLiveIncidents('sev')">Severity <span class="live-sort-arrow">⇅</span></th>
+                <th data-sort="reach" onclick="sortLiveIncidents('reach')">Reach <span class="live-sort-arrow">⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="liveIncidentTableBody"></tbody>
+          </table>
+        </div>
+        <div id="liveMiniMap" class="live-mini-map"></div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
       <div class="widget-title">◆ National IW Posture Index <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· composite across all active campaigns · click a factor to exclude it from the score</span></div>
       <div class="posture-top">
         <div class="posture-score-wrap">
@@ -336,6 +361,27 @@
     <div class="widget" style="margin-bottom:1.5rem;">
       <div class="widget-title">▦ Incident Calendar Heatmap</div>
       <div id="calendarHeatmapHost"></div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▤ Top-5 Leaderboards <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a row to jump to that view</span></div>
+      <div class="lb-grid">
+        <div class="lb-card">
+          <div class="lb-card-title">Top Regions by Incident Volume</div>
+          <div id="lbRegions"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Actors by Incident Volume <span class="lb-card-sub">(confirmed count)</span></div>
+          <div id="lbActors"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Platforms by Cumulative Reach</div>
+          <div id="lbPlatforms"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Cited Sources</div>
+          <div id="lbSources"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="sidebar-col" style="max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;padding:1.5rem;">

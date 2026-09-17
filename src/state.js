@@ -90,6 +90,8 @@ export let newsMonitorRendered = false;
 
 export let connectionsRendered = false;
 
+export let liveIncidentMapRendered = false;
+
 
 // ── setters (allow other modules to reassign this module's live bindings) ──
 export function setIncidents(v) { incidents = v; }
@@ -102,6 +104,7 @@ export function setNetworkRendered(v) { networkRendered = v; }
 export function setLiveRendered(v) { liveRendered = v; }
 export function setNewsMonitorRendered(v) { newsMonitorRendered = v; }
 export function setConnectionsRendered(v) { connectionsRendered = v; }
+export function setLiveIncidentMapRendered(v) { liveIncidentMapRendered = v; }
 export function setTimelineMinTs(v) { timelineMinTs = v; }
 export function setTimelineTotalDays(v) { timelineTotalDays = v; }
 export function setTimelineActiveRange(v) { timelineActiveRange = v; }
