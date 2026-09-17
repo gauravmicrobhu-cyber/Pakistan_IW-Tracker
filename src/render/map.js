@@ -1,13 +1,43 @@
-import { incidents, setCurrentFilter, setCurrentCampaignFilter, setSearchTerm } from '../state.js';
+import { incidents, setCurrentFilter, setCurrentCampaignFilter, setSearchTerm, getFilteredIncidents } from '../state.js';
 import { geoDefs, siteDefs, geoColor, typeLabels } from '../data/lookups.js';
 import { greatCircleArc } from '../logic/geo.js';
 import { formatDate } from '../logic/dates.js';
 import { escapeHtml } from '../logic/escapeHtml.js';
+import { parseReachValue, formatCompactNumber } from '../logic/reach.js';
 import { globalSelectedActor } from './actorDossier.js';
 import { renderTicker } from './connections.js';
 import { renderFeed } from './feed.js';
 
 export let mapSelectedGeo = null;
+
+// ── BUBBLE SIZE METRIC ── which quantity each region/site marker's radius represents. Defaults
+// to incident count (the original behavior); reach and severity give an "intensity" reading
+// instead — the same node might rank low by count but dwarf everything else by reach or by how
+// many critical/high incidents it's carried, which count alone hides.
+export let mapSizeMetric = 'count'; // 'count' | 'reach' | 'severity'
+
+const SEVERITY_WEIGHT = { critical: 4, high: 3, medium: 2, low: 1 };
+
+export function setMapSizeMetric(metric) {
+  mapSizeMetric = metric;
+  document.querySelectorAll('.size-pill').forEach(b => b.classList.toggle('active', b.dataset.metric === metric));
+  renderMap();
+}
+
+function nodeMetricValue(list) {
+  if (mapSizeMetric === 'reach') return list.reduce((sum, inc) => sum + (parseReachValue(inc.reach) || 0), 0);
+  if (mapSizeMetric === 'severity') return list.reduce((sum, inc) => sum + (SEVERITY_WEIGHT[inc.sev] || 0), 0);
+  return list.length;
+}
+
+function formatMetricValue(list) {
+  if (mapSizeMetric === 'reach') {
+    const v = nodeMetricValue(list);
+    return v > 0 ? `${formatCompactNumber(v)} reach` : 'no quantified reach';
+  }
+  if (mapSizeMetric === 'severity') return `${nodeMetricValue(list)} severity pts`;
+  return `${list.length} incident${list.length === 1 ? '' : 's'}`;
+}
 
 export let leafletMapInstance = null;
 
@@ -40,20 +70,25 @@ export function renderMap() {
   flowSegments = [];
   if (flowAnimId) cancelAnimationFrame(flowAnimId);
 
-  // Count incidents touching each geo node, and which destination(s) each incident links to (excluding origin)
-  // Response-type incidents (India's own countermeasures) are excluded entirely from this map's
-  // arc/marker system — they have no Pakistan-origin flow to visualise.
-  const nodeCounts = {};
-  Object.keys(geoDefs).forEach(k => nodeCounts[k] = 0);
+  // Group incidents touching each geo node (for both the displayed count and the active size
+  // metric), and which destination(s) each incident links to (excluding origin). Respects the
+  // same type/campaign/search/date-range filters the Feed tab uses, so switching to this tab
+  // shows the filtered view rather than always the full dataset. Response-type incidents
+  // (India's own countermeasures) are excluded entirely from this map's arc/marker system — they
+  // have no Pakistan-origin flow to visualise.
+  const filteredIncidents = getFilteredIncidents().filter(inc => inc.type !== 'response');
+  const nodeIncidentLists = {};
+  Object.keys(geoDefs).forEach(k => nodeIncidentLists[k] = []);
   const destEdges = {};
-  incidents.filter(inc => inc.type !== 'response').forEach(inc => {
-    (inc._geo || []).forEach(g => { if (nodeCounts.hasOwnProperty(g)) nodeCounts[g]++; });
+  filteredIncidents.forEach(inc => {
+    (inc._geo || []).forEach(g => { if (nodeIncidentLists.hasOwnProperty(g)) nodeIncidentLists[g].push(inc); });
     (inc._geo || []).filter(g => g !== 'pakistan').forEach(dest => {
       destEdges[dest] = destEdges[dest] || { count: 0, byType: {} };
       destEdges[dest].count++;
       destEdges[dest].byType[inc.type] = (destEdges[dest].byType[inc.type]||0) + 1;
     });
   });
+  const maxNodeMetric = Math.max(...Object.keys(geoDefs).filter(k => k !== 'pakistan').map(k => nodeMetricValue(nodeIncidentLists[k])), 1);
 
   // Animated flow lines: origin → each active destination
   Object.entries(destEdges).forEach(([dest, info]) => {
@@ -88,10 +123,11 @@ export function renderMap() {
 
   // Nodes (origin + destinations with hits)
   Object.entries(geoDefs).forEach(([key, def]) => {
-    const count = nodeCounts[key] || 0;
+    const list = nodeIncidentLists[key] || [];
+    const count = list.length;
     if (key !== 'pakistan' && count === 0) return;
     const selected = mapSelectedGeo === 'geo:'+key;
-    const isFocused = globalSelectedActor && incidents.some(i => (i._geo||[]).includes(key) && i._actor === globalSelectedActor);
+    const isFocused = globalSelectedActor && list.some(i => i._actor === globalSelectedActor);
 
     if (def.isOrigin) {
       const icon = L.divIcon({ className: '', html: `<div class="origin-pin" title="${def.label}"></div>`, iconSize: [16,16] });
@@ -99,7 +135,8 @@ export function renderMap() {
       m.bindPopup(`<strong>${def.label}</strong><br/>Attribution origin for tracked activity`);
       leafletLayers.push(m);
     } else {
-      const size = Math.max(20, Math.min(20 + count * 4, 52));
+      const metricVal = nodeMetricValue(list);
+      const size = Math.max(20, Math.min(20 + (metricVal / maxNodeMetric) * 32, 52));
       const icon = L.divIcon({
         className: '',
         html: `<div class="geo-pin${selected?' selected':''}${isFocused?' global-focus':''}" style="width:${size}px;height:${size}px;font-size:${Math.max(10, size*0.32)}px;">${count}</div>`,
@@ -107,21 +144,23 @@ export function renderMap() {
       });
       const m = L.marker([def.lat, def.lng], { icon }).addTo(leafletMapInstance);
       m.on('click', () => selectMapNode('geo', key));
-      m.bindTooltip(def.label, { permanent: false, direction: 'top', className: 'geo-label-tip' });
+      m.bindTooltip(`${def.label} · ${formatMetricValue(list)}`, { permanent: false, direction: 'top', className: 'geo-label-tip' });
       leafletLayers.push(m);
     }
   });
 
   // Cyber target-site markers — distinct layer for specific institutions/sectors hit by cyber incidents
-  const siteCounts = {};
-  Object.keys(siteDefs).forEach(k => siteCounts[k] = 0);
-  incidents.filter(inc => inc.type !== 'response').forEach(inc => (inc._sites || []).forEach(s => { if (siteCounts.hasOwnProperty(s)) siteCounts[s]++; }));
+  const siteIncidentLists = {};
+  Object.keys(siteDefs).forEach(k => siteIncidentLists[k] = []);
+  filteredIncidents.forEach(inc => (inc._sites || []).forEach(s => { if (siteIncidentLists.hasOwnProperty(s)) siteIncidentLists[s].push(inc); }));
+  const maxSiteMetric = Math.max(...Object.keys(siteDefs).map(k => nodeMetricValue(siteIncidentLists[k])), 1);
 
   Object.entries(siteDefs).forEach(([key, def]) => {
-    const count = siteCounts[key] || 0;
+    const list = siteIncidentLists[key] || [];
+    const count = list.length;
     if (count === 0) return;
     const selected = mapSelectedGeo === 'site:'+key;
-    const isFocused = globalSelectedActor && incidents.some(i => (i._sites||[]).includes(key) && i._actor === globalSelectedActor);
+    const isFocused = globalSelectedActor && list.some(i => i._actor === globalSelectedActor);
 
     // dashed purple flow line from origin to the targeted site (cyber vector color)
     const o = geoDefs['pakistan'];
@@ -133,7 +172,8 @@ export function renderMap() {
     leafletLayers.push(packet);
     flowSegments.push({ latlngs, marker: packet, t: Math.random(), speed: 0.003 + Math.random()*0.0015 });
 
-    const size = Math.max(18, Math.min(18 + count * 5, 44));
+    const metricVal = nodeMetricValue(list);
+    const size = Math.max(18, Math.min(18 + (metricVal / maxSiteMetric) * 26, 44));
     const icon = L.divIcon({
       className: '',
       html: `<div class="site-pin${selected?' selected':''}${isFocused?' global-focus':''}" style="width:${size}px;height:${size}px;font-size:${Math.max(10, size*0.4)}px;">⚡</div>`,
@@ -141,17 +181,18 @@ export function renderMap() {
     });
     const m = L.marker([def.lat, def.lng], { icon, zIndexOffset: 500 }).addTo(leafletMapInstance);
     m.on('click', () => selectMapNode('site', key));
-    m.bindTooltip(`${def.label} · ${count} cyber incident(s)`, { permanent: false, direction: 'top', className: 'geo-label-tip' });
+    m.bindTooltip(`${def.label} · ${formatMetricValue(list)}`, { permanent: false, direction: 'top', className: 'geo-label-tip' });
     leafletLayers.push(m);
   });
 
   // Legend
   const legend = document.getElementById('mapLegend');
+  const sizeByLabel = mapSizeMetric === 'reach' ? 'cumulative reach' : mapSizeMetric === 'severity' ? 'severity-weighted intensity' : 'incident count';
   if (legend) {
     legend.innerHTML = `
       <span class="map-legend-item"><span class="map-legend-dot" style="background:#ff2d6a"></span>Origin (Pakistan-based actors)</span>
-      <span class="map-legend-item"><span class="map-legend-dot" style="background:#00f5d4"></span>Narrative target region · size/number = incident count</span>
-      <span class="map-legend-item"><span class="map-legend-dot" style="background:${geoColor.cyber}"></span>⚡ Cyber-attack target site · size/number = incident count</span>
+      <span class="map-legend-item"><span class="map-legend-dot" style="background:#00f5d4"></span>Narrative target region · number = incident count · size = ${sizeByLabel}</span>
+      <span class="map-legend-item"><span class="map-legend-dot" style="background:${geoColor.cyber}"></span>⚡ Cyber-attack target site · size = ${sizeByLabel}</span>
       <span class="map-legend-item">Line color = dominant vector type on that route</span>
       <span class="map-legend-item">Moving dot = live animated flow along the route</span>
     `;
@@ -187,9 +228,10 @@ export function renderMapSidebar(kind, key) {
   const defSource = kind === 'site' ? siteDefs : geoDefs;
   const fieldName = kind === 'site' ? '_sites' : '_geo';
   const def = defSource[key];
+  const scoped = getFilteredIncidents();
   const list = key === 'pakistan'
-    ? incidents.slice().sort((a,b)=> new Date(b.date)-new Date(a.date))
-    : incidents.filter(i => (i[fieldName]||[]).includes(key)).sort((a,b) => new Date(b.date) - new Date(a.date));
+    ? scoped.slice().sort((a,b)=> new Date(b.date)-new Date(a.date))
+    : scoped.filter(i => (i[fieldName]||[]).includes(key)).sort((a,b) => new Date(b.date) - new Date(a.date));
 
   if (!list.length) { body.innerHTML = `<div class="map-empty">No incidents mapped to ${def.label}.</div>`; return; }
 

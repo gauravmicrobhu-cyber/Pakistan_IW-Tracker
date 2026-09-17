@@ -138,6 +138,35 @@
 <!-- MAP TAB -->
 <div class="tab-panel" id="tab-map">
   <div class="global-focus-bar" id="gfb-map"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
+  <div class="map-size-toggle">
+    <span class="filter-label">Bubble size:</span>
+    <button class="size-pill active" data-metric="count" onclick="setMapSizeMetric('count')">Incident Count</button>
+    <button class="size-pill" data-metric="reach" onclick="setMapSizeMetric('reach')">Cumulative Reach</button>
+    <button class="size-pill" data-metric="severity" onclick="setMapSizeMetric('severity')">Severity-Weighted</button>
+  </div>
   <div class="map-wrap">
     <div class="map-canvas-col">
       <div id="leafletMap"></div>
@@ -156,6 +185,29 @@
 <!-- NETWORK TAB -->
 <div class="tab-panel" id="tab-network">
   <div class="global-focus-bar" id="gfb-network"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
   <div class="net-wrap">
     <div class="net-canvas-col">
       <div class="net-toolbar">
@@ -256,6 +308,29 @@
 <!-- CONNECTIONS TAB -->
 <div class="tab-panel" id="tab-connections">
   <div class="global-focus-bar" id="gfb-connections" style="margin:1rem 2rem 0;"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar" style="margin:1rem 2rem 0;">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
   <div style="max-width:1200px;margin:0 auto;padding:1.5rem 2rem;">
     <div class="section-hdr">
       <div class="section-hdr-text">Cross-Incident Connections</div>
@@ -315,6 +390,31 @@
 <div class="tab-panel" id="tab-analytics">
   <div style="max-width:1400px;margin:0 auto;padding:1.5rem;">
     <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title" style="display:flex;align-items:center;gap:8px;">
+        <span class="live-dot" style="width:6px;height:6px;flex-shrink:0;"></span>
+        <span>Recent Incident Activity</span>
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· the 15 most recently dated incidents in this dataset, not a real-time external feed · click a row or map pin to open it · click a column header to sort</span>
+      </div>
+      <div class="live-panel-grid">
+        <div class="live-table-wrap">
+          <table class="live-table">
+            <thead>
+              <tr>
+                <th data-sort="date" onclick="sortLiveIncidents('date')">Date <span class="live-sort-arrow">▼</span></th>
+                <th>Actor</th>
+                <th>Vector</th>
+                <th>Platform</th>
+                <th data-sort="sev" onclick="sortLiveIncidents('sev')">Severity <span class="live-sort-arrow">⇅</span></th>
+                <th data-sort="reach" onclick="sortLiveIncidents('reach')">Reach <span class="live-sort-arrow">⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="liveIncidentTableBody"></tbody>
+          </table>
+        </div>
+        <div id="liveMiniMap" class="live-mini-map"></div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
       <div class="widget-title">◆ National IW Posture Index <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· composite across all active campaigns · click a factor to exclude it from the score</span></div>
       <div class="posture-top">
         <div class="posture-score-wrap">
@@ -336,6 +436,62 @@
     <div class="widget" style="margin-bottom:1.5rem;">
       <div class="widget-title">▦ Incident Calendar Heatmap</div>
       <div id="calendarHeatmapHost"></div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▤ Top-5 Leaderboards <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a row to jump to that view</span></div>
+      <div class="lb-grid">
+        <div class="lb-card">
+          <div class="lb-card-title">Top Regions by Incident Volume</div>
+          <div id="lbRegions"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Actors by Incident Volume <span class="lb-card-sub">(confirmed count)</span></div>
+          <div id="lbActors"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Platforms by Cumulative Reach</div>
+          <div id="lbPlatforms"></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Top Cited Sources</div>
+          <div id="lbSources"></div>
+        </div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▤ Incidents by Vector Over Time <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a line/legend entry to filter</span></div>
+      <div style="position:relative;height:220px;">
+        <canvas id="vectorTimelineChart"></canvas>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▤ Incidents by Platform Over Time <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a line/legend entry to search that platform</span></div>
+      <div style="position:relative;height:220px;">
+        <canvas id="platformTimelineChart"></canvas>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">◐ Distribution Breakdown <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a platform slice to search that platform</span></div>
+      <div class="lb-grid">
+        <div class="lb-card">
+          <div class="lb-card-title">Platform Distribution</div>
+          <div style="position:relative;height:180px;"><canvas id="platformPieChart"></canvas></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Attribution Confidence</div>
+          <div style="position:relative;height:180px;"><canvas id="confidencePieChart"></canvas></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Source-Reliability Tier</div>
+          <div style="position:relative;height:180px;"><canvas id="tierPieChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▥ Incidents by Vector × Confirmation Status <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· how much of each vector's volume is confirmed vs not · click a bar to filter</span></div>
+      <div style="position:relative;height:220px;">
+        <canvas id="vectorConfirmationChart"></canvas>
+      </div>
     </div>
   </div>
   <div class="sidebar-col" style="max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;padding:1.5rem;">

@@ -1,8 +1,9 @@
-import { incidents, currentFilter, setCurrentFilter, currentCampaignFilter, setCurrentCampaignFilter, searchTerm, setSearchTerm } from '../state.js';
+import { incidents, currentFilter, setCurrentFilter, currentCampaignFilter, setCurrentCampaignFilter, searchTerm, setSearchTerm, timelineActiveRange, getFilteredIncidents } from '../state.js';
 import { typeLabels, campaignDefs } from '../data/lookups.js';
 import { renderFeed } from './feed.js';
 import { jumpToIncident } from './map.js';
 import { showToast } from './misc.js';
+import { resetTimeline } from './timeline.js';
 
 export function jumpToIncidentFromURL() {
   const params = new URLSearchParams(window.location.search);
@@ -21,6 +22,7 @@ export function setCampaignFilter(campaign) {
   setCurrentCampaignFilter(campaign || 'all');
   document.querySelectorAll('.pill-campaign').forEach(b => b.classList.toggle('active', b.dataset.campaign === currentCampaignFilter));
   renderFeed();
+  syncFilterHighlights();
   syncURLState();
 }
 
@@ -35,9 +37,50 @@ export function filterByVector(type) {
 }
 
 
+// ── SHARED FILTER BAR (Map / Linkage Network / Connections tabs) ── a compact type+campaign
+// dropdown pair, identical on all three tabs, bound to the same global filter state the Feed's
+// pill bar uses. A dropdown's onchange always fires with a definite value (never "toggle back to
+// all" the way a re-clicked pill does), so this needs its own setter rather than reusing
+// filterByVector()'s toggle semantics.
+
+export function setTypeFilter(type) {
+  setCurrentFilter(type || 'all');
+  document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
+  renderFeed();
+  syncFilterHighlights();
+  syncURLState();
+}
+
+
+export function resetAllFilters() {
+  setCurrentFilter('all');
+  setCurrentCampaignFilter('all');
+  setSearchTerm('');
+  document.querySelectorAll('.pill:not(.pill-campaign)').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  document.querySelectorAll('.pill-campaign').forEach(b => b.classList.toggle('active', b.dataset.campaign === 'all'));
+  const box = document.getElementById('searchBox');
+  if (box) box.value = '';
+  resetTimeline(); // also calls renderFeed()
+  syncFilterHighlights();
+  syncURLState();
+}
+
+
 export function syncFilterHighlights() {
   document.querySelectorAll('.threat-row').forEach(el => el.classList.toggle('active-filter', el.dataset.vtype === currentFilter));
   document.querySelectorAll('.vector-item').forEach(el => el.classList.toggle('active-filter', el.dataset.vtype === currentFilter));
+  syncSharedFilterBarUI();
+}
+
+
+function syncSharedFilterBarUI() {
+  document.querySelectorAll('.js-type-filter-select').forEach(el => { el.value = currentFilter; });
+  document.querySelectorAll('.js-campaign-filter-select').forEach(el => { el.value = currentCampaignFilter; });
+  const total = incidents.length;
+  const shown = getFilteredIncidents().length;
+  const noFiltersActive = currentFilter === 'all' && currentCampaignFilter === 'all' && !searchTerm && !timelineActiveRange;
+  const label = noFiltersActive ? `Showing all ${total} incidents` : `Showing ${shown} of ${total} incidents`;
+  document.querySelectorAll('.js-filter-summary').forEach(el => { el.textContent = label; });
 }
 
 

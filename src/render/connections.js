@@ -1,4 +1,4 @@
-import { incidents } from '../state.js';
+import { incidents, getFilteredIncidents } from '../state.js';
 import { typeColor, typeLabels } from '../data/lookups.js';
 import { clusterByDate, labelCluster, normalizeSourceName } from '../logic/cluster.js';
 import { formatDate } from '../logic/dates.js';
@@ -7,7 +7,10 @@ import { globalSelectedActor, setGlobalActorFocus } from './actorDossier.js';
 import { jumpToIncident } from './map.js';
 
 export function renderConnections() {
-  const all = incidents;
+  // Respects the same type/campaign/search/date-range filters as the Feed tab. The live ticker
+  // bar rendered by renderTicker() below is deliberately exempt — it's an ambient "overall
+  // dataset activity" readout, not a view of the current filtered selection.
+  const all = getFilteredIncidents();
   const statsHost = document.getElementById('connStats');
   const clustersHost = document.getElementById('connClusters');
   const recurHost = document.getElementById('connRecurring');

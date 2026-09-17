@@ -12,11 +12,12 @@ import {
   liveRendered, setLiveRendered,
   newsMonitorRendered, setNewsMonitorRendered,
   connectionsRendered, setConnectionsRendered,
+  liveIncidentMapRendered, setLiveIncidentMapRendered,
   setCurrentFilter, setCurrentCampaignFilter, setSearchTerm,
 } from './state.js';
 
 import { renderFeed, addIncident, analyseCard, citeIncident, copyDeepLink, deleteIncident, saveNote, toggleFlag, toggleNoteBox } from './render/feed.js';
-import { renderMap, leafletMapInstance, jumpToIncident } from './render/map.js';
+import { renderMap, leafletMapInstance, jumpToIncident, setMapSizeMetric } from './render/map.js';
 import { renderNetwork, resetNetworkSelection } from './render/network.js';
 import { renderConnections } from './render/connections.js';
 import { renderPending } from './render/pending.js';
@@ -32,11 +33,14 @@ import {
 import {
   setCampaignFilter, filterByVector, syncFilterHighlights, syncURLState,
   restoreURLState, copyFilteredViewLink, jumpToIncidentFromURL,
+  setTypeFilter, resetAllFilters,
 } from './render/filters.js';
 import { backupUserData, restoreUserData, updateBackupBanner } from './render/backup.js';
 import { exportData } from './render/export.js';
 import { updateClock } from './render/misc.js';
 import { togglePostureFactor } from './render/analytics.js';
+import { focusRegionFromLeaderboard, searchFromLeaderboard } from './render/leaderboards.js';
+import { renderLiveIncidentMap, liveMiniMapInstance, sortLiveIncidents } from './render/liveIncidents.js';
 
 import { initLiveSignals, loadHashtag, switchLivePlatform } from './live/twitter.js';
 import { runGdeltSearch } from './live/gdelt.js';
@@ -138,6 +142,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'live' && !liveRendered) { initLiveSignals(); setLiveRendered(true); }
     if (btn.dataset.tab === 'newsmonitor' && !newsMonitorRendered) { runGdeltSearch(); setNewsMonitorRendered(true); }
     if (btn.dataset.tab === 'connections' && !connectionsRendered) { renderConnections(); setConnectionsRendered(true); }
+    if (btn.dataset.tab === 'analytics') {
+      if (!liveIncidentMapRendered) { renderLiveIncidentMap(); setLiveIncidentMapRendered(true); }
+      else setTimeout(() => { if (liveMiniMapInstance) liveMiniMapInstance.invalidateSize(); }, 50);
+    }
     if (btn.dataset.tab === 'pending') { renderPending(); }
     syncURLState();
   });
@@ -175,6 +183,7 @@ window.deleteIncident = deleteIncident;
 window.exportData = exportData;
 window.filterByVector = filterByVector;
 window.filterFeedByDate = filterFeedByDate;
+window.focusRegionFromLeaderboard = focusRegionFromLeaderboard;
 window.generateBrief = generateBrief;
 window.jumpToIncident = jumpToIncident;
 window.loadFbPage = loadFbPage;
@@ -185,13 +194,18 @@ window.openActorDossier = openActorDossier;
 window.openChangelog = openChangelog;
 window.openMethodology = openMethodology;
 window.openSystemStatus = openSystemStatus;
+window.resetAllFilters = resetAllFilters;
 window.resetNetworkSelection = resetNetworkSelection;
 window.resetTimeline = resetTimeline;
 window.restoreUserData = restoreUserData;
 window.runGdeltSearch = runGdeltSearch;
 window.runYoutubeSearch = runYoutubeSearch;
 window.saveNote = saveNote;
+window.searchFromLeaderboard = searchFromLeaderboard;
 window.setCampaignFilter = setCampaignFilter;
+window.setMapSizeMetric = setMapSizeMetric;
+window.setTypeFilter = setTypeFilter;
+window.sortLiveIncidents = sortLiveIncidents;
 window.switchLivePlatform = switchLivePlatform;
 window.toggleFlag = toggleFlag;
 window.toggleNoteBox = toggleNoteBox;
