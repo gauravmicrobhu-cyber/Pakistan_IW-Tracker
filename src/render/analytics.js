@@ -1,5 +1,5 @@
 import { incidents, mapRendered, networkRendered, connectionsRendered, liveIncidentMapRendered } from '../state.js';
-import { mitreAttckData, campaignDefs, vectorChartColors, vectorChartLabels } from '../data/lookups.js';
+import { mitreAttckData, campaignDefs, vectorChartColors, vectorChartLabels, typeLabels, confidenceMeta, tierMeta } from '../data/lookups.js';
 import { parseReachValue, formatCompactNumber } from '../logic/reach.js';
 import { computeNationalPosture, statusForPosture } from '../logic/posture.js';
 import { renderCalendarHeatmap } from './timeline.js';
@@ -210,6 +210,10 @@ export function updateStats() {
   updateTimelineChart();
   updateVectorTimelineChart();
   updatePlatformTimelineChart();
+  updatePlatformPieChart();
+  updateConfidencePieChart();
+  updateTierPieChart();
+  updateVectorConfirmationChart();
   renderLeaderboards();
   renderLiveIncidentTable();
 
@@ -423,6 +427,151 @@ export function updatePlatformTimelineChart() {
       onClick: (evt, _elements, chart) => {
         const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
         if (hit.length) searchFromLeaderboard(PLATFORM_TIMELINE_DEFS[hit[0].datasetIndex].term);
+      },
+      onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
+    }
+  });
+}
+
+
+// ── DISTRIBUTION PIES (per-axis breakdown, beyond the existing Vector Distribution doughnut) ──
+// Same doughnut shell as updateVectorChart() above, factored into one small helper since these
+// three differ only in which field they group by and what an active slice does on click.
+
+const DOUGHNUT_BASE_OPTIONS = {
+  responsive: true, maintainAspectRatio: false,
+  cutout: '62%',
+  plugins: {
+    legend: { position: 'bottom', labels: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 8, padding: 8 } },
+    tooltip: { backgroundColor: '#161c30', borderColor: '#2a3350', borderWidth: 1, titleFont: { family: 'IBM Plex Mono' }, bodyFont: { family: 'IBM Plex Mono' } }
+  }
+};
+
+function createDoughnutRenderer(canvasId, compute, onClickIndex) {
+  let instance = null;
+  return function render() {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    const { labels, data, colors } = compute();
+
+    if (instance) {
+      instance.data.labels = labels;
+      instance.data.datasets[0].data = data;
+      instance.data.datasets[0].backgroundColor = colors;
+      instance.update();
+      return;
+    }
+    instance = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#0e1220', borderWidth: 2, hoverOffset: 10 }] },
+      options: {
+        ...DOUGHNUT_BASE_OPTIONS,
+        onClick: onClickIndex ? (evt, elements) => { if (elements.length) onClickIndex(elements[0].index); } : undefined,
+        onHover: onClickIndex ? (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; } : undefined
+      }
+    });
+  };
+}
+
+export const updatePlatformPieChart = createDoughnutRenderer(
+  'platformPieChart',
+  () => {
+    const counts = {};
+    PLATFORM_TIMELINE_DEFS.forEach(p => { counts[p.key] = 0; });
+    incidents.forEach(i => {
+      const p = (i.platform || '').toLowerCase();
+      PLATFORM_TIMELINE_DEFS.forEach(def => { if (def.test(p)) counts[def.key]++; });
+    });
+    return {
+      labels: PLATFORM_TIMELINE_DEFS.map(d => d.label),
+      data: PLATFORM_TIMELINE_DEFS.map(d => counts[d.key]),
+      colors: PLATFORM_TIMELINE_DEFS.map(d => d.color)
+    };
+  },
+  idx => searchFromLeaderboard(PLATFORM_TIMELINE_DEFS[idx].term)
+);
+
+export const updateConfidencePieChart = createDoughnutRenderer(
+  'confidencePieChart',
+  () => {
+    const keys = Object.keys(confidenceMeta);
+    const counts = {};
+    keys.forEach(k => { counts[k] = 0; });
+    incidents.forEach(i => { if (counts.hasOwnProperty(i._confidence)) counts[i._confidence]++; });
+    return {
+      labels: keys.map(k => confidenceMeta[k].short),
+      data: keys.map(k => counts[k]),
+      colors: keys.map(k => confidenceMeta[k].color)
+    };
+  }
+  // No click-to-filter: attribution confidence isn't a text-searchable or pill-filterable field
+  // anywhere else in the app yet, unlike vector/platform.
+);
+
+export const updateTierPieChart = createDoughnutRenderer(
+  'tierPieChart',
+  () => {
+    const keys = Object.keys(tierMeta);
+    const counts = {};
+    keys.forEach(k => { counts[k] = 0; });
+    incidents.forEach(i => { if (counts.hasOwnProperty(i._tier)) counts[i._tier]++; });
+    return {
+      labels: keys.map(k => tierMeta[k].short),
+      data: keys.map(k => counts[k]),
+      colors: keys.map(k => tierMeta[k].color)
+    };
+  }
+);
+
+// ── VECTOR × CONFIRMATION STATUS (grouped bar) ── the "incidents by category, split by
+// attribution side" pattern from comparable OSINT dashboards, adapted to this tracker's own
+// attribution axis: for each vector (including Indian Response), how much of its volume is
+// confirmed vs not — surfaces which vectors are well-evidenced vs largely unconfirmed claims.
+
+export let vectorConfirmationChartInstance = null;
+
+const ALL_TYPES_ORDERED = ['social', 'media', 'psyops', 'cyber', 'diplo', 'proxy', 'response'];
+
+export function updateVectorConfirmationChart() {
+  const canvas = document.getElementById('vectorConfirmationChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const confirmed = [], unconfirmed = [];
+  ALL_TYPES_ORDERED.forEach(t => {
+    const list = incidents.filter(i => i.type === t);
+    const conf = list.filter(i => i._confidence === 'confirmed').length;
+    confirmed.push(conf);
+    unconfirmed.push(list.length - conf);
+  });
+  const labels = ALL_TYPES_ORDERED.map(t => typeLabels[t] || t);
+
+  const datasets = [
+    { label: 'Confirmed', data: confirmed, backgroundColor: 'rgba(0,200,83,0.75)', hoverBackgroundColor: '#00c853', borderRadius: 3 },
+    { label: 'Not Confirmed', data: unconfirmed, backgroundColor: 'rgba(139,150,171,0.4)', hoverBackgroundColor: '#8b96ab', borderRadius: 3 }
+  ];
+
+  if (vectorConfirmationChartInstance) {
+    vectorConfirmationChartInstance.data.labels = labels;
+    vectorConfirmationChartInstance.data.datasets = datasets;
+    vectorConfirmationChartInstance.update();
+    return;
+  }
+  vectorConfirmationChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 8 } }, grid: { display: false } },
+        y: { ticks: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 8 }, precision: 0 }, grid: { color: '#2a3350' } }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b96ab', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 8, padding: 8 } },
+        tooltip: { backgroundColor: '#161c30', borderColor: '#2a3350', borderWidth: 1, titleFont: { family: 'IBM Plex Mono' }, bodyFont: { family: 'IBM Plex Mono' } }
+      },
+      onClick: (evt, _elements, chart) => {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (hit.length) filterByVector(ALL_TYPES_ORDERED[hit[0].index]);
       },
       onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
     }

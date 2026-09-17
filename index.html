@@ -395,6 +395,29 @@
         <canvas id="platformTimelineChart"></canvas>
       </div>
     </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">◐ Distribution Breakdown <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· click a platform slice to search that platform</span></div>
+      <div class="lb-grid">
+        <div class="lb-card">
+          <div class="lb-card-title">Platform Distribution</div>
+          <div style="position:relative;height:180px;"><canvas id="platformPieChart"></canvas></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Attribution Confidence</div>
+          <div style="position:relative;height:180px;"><canvas id="confidencePieChart"></canvas></div>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Source-Reliability Tier</div>
+          <div style="position:relative;height:180px;"><canvas id="tierPieChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:1.5rem;">
+      <div class="widget-title">▥ Incidents by Vector × Confirmation Status <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">· how much of each vector's volume is confirmed vs not · click a bar to filter</span></div>
+      <div style="position:relative;height:220px;">
+        <canvas id="vectorConfirmationChart"></canvas>
+      </div>
+    </div>
   </div>
   <div class="sidebar-col" style="max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;padding:1.5rem;">
 
