@@ -138,6 +138,35 @@
 <!-- MAP TAB -->
 <div class="tab-panel" id="tab-map">
   <div class="global-focus-bar" id="gfb-map"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
+  <div class="map-size-toggle">
+    <span class="filter-label">Bubble size:</span>
+    <button class="size-pill active" data-metric="count" onclick="setMapSizeMetric('count')">Incident Count</button>
+    <button class="size-pill" data-metric="reach" onclick="setMapSizeMetric('reach')">Cumulative Reach</button>
+    <button class="size-pill" data-metric="severity" onclick="setMapSizeMetric('severity')">Severity-Weighted</button>
+  </div>
   <div class="map-wrap">
     <div class="map-canvas-col">
       <div id="leafletMap"></div>
@@ -156,6 +185,29 @@
 <!-- NETWORK TAB -->
 <div class="tab-panel" id="tab-network">
   <div class="global-focus-bar" id="gfb-network"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
   <div class="net-wrap">
     <div class="net-canvas-col">
       <div class="net-toolbar">
@@ -256,6 +308,29 @@
 <!-- CONNECTIONS TAB -->
 <div class="tab-panel" id="tab-connections">
   <div class="global-focus-bar" id="gfb-connections" style="margin:1rem 2rem 0;"><div class="gfb-dot"></div><span class="gfb-label"></span><button class="gfb-clear" onclick="clearGlobalActorFocus()">Clear focus</button></div>
+  <div class="shared-filter-bar" style="margin:1rem 2rem 0;">
+    <span class="filter-label">Filter:</span>
+    <select class="js-type-filter-select" onchange="setTypeFilter(this.value)">
+      <option value="all">All Vectors</option>
+      <option value="social">Social Media IO</option>
+      <option value="media">Fake Media</option>
+      <option value="psyops">PsyOps</option>
+      <option value="cyber">Cyber</option>
+      <option value="diplo">Diplomatic</option>
+      <option value="proxy">Proxy Network</option>
+      <option value="response">Indian Response</option>
+    </select>
+    <select class="js-campaign-filter-select" onchange="setCampaignFilter(this.value)">
+      <option value="all">All Campaigns</option>
+      <option value="pulwama_balakot">Pulwama–Balakot</option>
+      <option value="article370">Article 370</option>
+      <option value="pahalgam">Pahalgam</option>
+      <option value="sindoor">Op Sindoor</option>
+      <option value="ongoing">Ongoing/Other</option>
+    </select>
+    <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+    <span class="shared-filter-summary js-filter-summary"></span>
+  </div>
   <div style="max-width:1200px;margin:0 auto;padding:1.5rem 2rem;">
     <div class="section-hdr">
       <div class="section-hdr-text">Cross-Incident Connections</div>

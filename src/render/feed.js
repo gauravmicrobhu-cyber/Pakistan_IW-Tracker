@@ -1,4 +1,4 @@
-import { incidents, annotations, getAnnotation, saveAnnotations, saveIncidents, setIncidents, setMapRendered, setNetworkRendered, currentFilter, currentCampaignFilter, searchTerm, timelineActiveRange } from '../state.js';
+import { incidents, annotations, getAnnotation, saveAnnotations, saveIncidents, setIncidents, setMapRendered, setNetworkRendered, incidentMatchesFilters } from '../state.js';
 import { platColors, tierMeta, confidenceMeta, campaignDefs, tagClass, typeLabels } from '../data/lookups.js';
 import { formatDate } from '../logic/dates.js';
 import { escapeHtml } from '../logic/escapeHtml.js';
@@ -74,18 +74,7 @@ export function renderFeed() {
   const sorted = [...incidents].sort((a,b) => new Date(b.date) - new Date(a.date));
 
   sorted.forEach(inc => {
-    const matchFilter = currentFilter === 'all' || inc.type === currentFilter;
-    const matchCampaign = currentCampaignFilter === 'all' || inc._campaign === currentCampaignFilter;
-    const matchSearch = !searchTerm ||
-      inc.title.toLowerCase().includes(searchTerm) ||
-      inc.detail.toLowerCase().includes(searchTerm) ||
-      (inc.source||'').toLowerCase().includes(searchTerm) ||
-      (inc.platform||'').toLowerCase().includes(searchTerm);
-    const matchTimeline = !timelineActiveRange || (() => {
-      const t = new Date(inc.date + 'T00:00:00').getTime();
-      return t >= timelineActiveRange[0] && t <= timelineActiveRange[1];
-    })();
-    const show = matchFilter && matchCampaign && matchSearch && matchTimeline;
+    const show = incidentMatchesFilters(inc);
     if (show) visible++;
 
     const platKey = (inc.platform||'').toLowerCase().split('/')[0].trim();

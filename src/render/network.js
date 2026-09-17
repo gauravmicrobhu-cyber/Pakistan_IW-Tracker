@@ -1,4 +1,4 @@
-import { incidents } from '../state.js';
+import { incidents, getFilteredIncidents } from '../state.js';
 import { targetLabels } from '../data/lookups.js';
 import { formatDate } from '../logic/dates.js';
 import { escapeHtml } from '../logic/escapeHtml.js';
@@ -25,7 +25,7 @@ export function buildNetworkGraph() {
     return linksMap.get(key);
   }
 
-  incidents.forEach(inc => {
+  getFilteredIncidents().forEach(inc => {
     const actorId = 'actor:' + inc._actor;
     const aNode = ensureNode(actorId, 'actor', inc._actor);
     aNode.count++; aNode.incidentIds.add(inc.id);

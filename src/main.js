@@ -17,7 +17,7 @@ import {
 } from './state.js';
 
 import { renderFeed, addIncident, analyseCard, citeIncident, copyDeepLink, deleteIncident, saveNote, toggleFlag, toggleNoteBox } from './render/feed.js';
-import { renderMap, leafletMapInstance, jumpToIncident } from './render/map.js';
+import { renderMap, leafletMapInstance, jumpToIncident, setMapSizeMetric } from './render/map.js';
 import { renderNetwork, resetNetworkSelection } from './render/network.js';
 import { renderConnections } from './render/connections.js';
 import { renderPending } from './render/pending.js';
@@ -33,6 +33,7 @@ import {
 import {
   setCampaignFilter, filterByVector, syncFilterHighlights, syncURLState,
   restoreURLState, copyFilteredViewLink, jumpToIncidentFromURL,
+  setTypeFilter, resetAllFilters,
 } from './render/filters.js';
 import { backupUserData, restoreUserData, updateBackupBanner } from './render/backup.js';
 import { exportData } from './render/export.js';
@@ -193,6 +194,7 @@ window.openActorDossier = openActorDossier;
 window.openChangelog = openChangelog;
 window.openMethodology = openMethodology;
 window.openSystemStatus = openSystemStatus;
+window.resetAllFilters = resetAllFilters;
 window.resetNetworkSelection = resetNetworkSelection;
 window.resetTimeline = resetTimeline;
 window.restoreUserData = restoreUserData;
@@ -201,6 +203,8 @@ window.runYoutubeSearch = runYoutubeSearch;
 window.saveNote = saveNote;
 window.searchFromLeaderboard = searchFromLeaderboard;
 window.setCampaignFilter = setCampaignFilter;
+window.setMapSizeMetric = setMapSizeMetric;
+window.setTypeFilter = setTypeFilter;
 window.sortLiveIncidents = sortLiveIncidents;
 window.switchLivePlatform = switchLivePlatform;
 window.toggleFlag = toggleFlag;

@@ -81,6 +81,29 @@ export let timelineMinTs = null, timelineTotalDays = 1;
 
 export let timelineActiveRange = null; // [loTs, hiTs] or null = full range (no filtering)
 
+// ── SHARED FILTER PREDICATE ── the single source of truth for "does this incident match the
+// current type/campaign/search/date-range filters", so every view that wants a filtered subset
+// (the Feed's per-card visibility toggle, and the Map/Network/Connections tabs) applies exactly
+// the same rule instead of each re-deriving its own copy that can silently drift out of sync.
+export function incidentMatchesFilters(inc) {
+  const matchFilter = currentFilter === 'all' || inc.type === currentFilter;
+  const matchCampaign = currentCampaignFilter === 'all' || inc._campaign === currentCampaignFilter;
+  const matchSearch = !searchTerm ||
+    inc.title.toLowerCase().includes(searchTerm) ||
+    inc.detail.toLowerCase().includes(searchTerm) ||
+    (inc.source || '').toLowerCase().includes(searchTerm) ||
+    (inc.platform || '').toLowerCase().includes(searchTerm);
+  const matchTimeline = !timelineActiveRange || (() => {
+    const t = new Date(inc.date + 'T00:00:00').getTime();
+    return t >= timelineActiveRange[0] && t <= timelineActiveRange[1];
+  })();
+  return matchFilter && matchCampaign && matchSearch && matchTimeline;
+}
+
+export function getFilteredIncidents() {
+  return incidents.filter(incidentMatchesFilters);
+}
+
 
 
 // ── render-lazy flags (moved from top-level MAIN_LET) ──
