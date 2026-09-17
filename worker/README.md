@@ -92,15 +92,19 @@ npx wrangler secret put TURNSTILE_SECRET_KEY
 npx wrangler deploy
 ```
 
-This prints a URL that looks like `https://prism-iw-tracker-submit.<your-subdomain>.workers.dev`.
-Copy it.
+This prints a URL that looks like `https://pakistan-iw-tracker.<your-subdomain>.workers.dev` — the
+Worker's name (and so its URL) comes from the `name` field in `worker/wrangler.toml`, currently
+`pakistan-iw-tracker`. If you ever rename it there, the deployed URL changes too — update
+`src/config.js` (step 8) and the site's Turnstile domain (step 6) to match.
+
+Copy the printed URL.
 
 ## 8. Wire the frontend config
 
 Open `src/config.js` at the repo root (not in `worker/`) and fill in the two placeholders:
 
 ```js
-export const SUBMISSION_ENDPOINT = 'https://prism-iw-tracker-submit.<your-subdomain>.workers.dev'; // from step 7
+export const SUBMISSION_ENDPOINT = 'https://pakistan-iw-tracker.<your-subdomain>.workers.dev'; // from step 7
 export const TURNSTILE_SITE_KEY = '<your Turnstile site key>'; // from step 6
 ```
 
